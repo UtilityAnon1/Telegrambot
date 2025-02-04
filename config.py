@@ -24,3 +24,5 @@ DUTY_MODE_PHRASE = "On duty"
 
 # Ownership and marking awareness  
 CHECK_MARKINGS_IN_WIFE_PRESENCE = True  
+# Days when no messages should be sent if off shift
+NO_MESSAGE_DAYS_OFF_SHIFT = ["Wednesday", "Saturday", "Sunday", "Monday"]
