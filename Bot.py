@@ -1,4 +1,4 @@
-import telegram
+from config import * import telegram
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import os
 
