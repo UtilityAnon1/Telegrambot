@@ -1,9 +1,12 @@
-import telebot  
-import datetime  
-import config  
+import telebot
+import datetime
+import asyncio
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
+from config import TELEGRAM_BOT_TOKEN, NO_MESSAGE_DAYS, DUTY_MODE
 
 # Initialize the bot
-bot = telebot.TeleBot(config.TELEGRAM_BOT_TOKEN)
+bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
 # Define user states and tracking
 user_states = {}
@@ -14,19 +17,21 @@ active_modes = {
     "personal_time": False
 }
 
+# Initialize scheduler
+scheduler = AsyncIOScheduler()
+
 # Function to check if it's within silent hours
 def is_silent_hours():
     now = datetime.datetime.now().hour
     return silent_hours[0] <= now or now < silent_hours[1]
-from datetime import datetime
-from config import NO_MESSAGE_DAYS, DUTY_MODE
 
 def can_send_message():
-    today = datetime.today().strftime('%A')  # Get current day (e.g., 'Monday')
+    today = datetime.datetime.today().strftime('%A')  # Get current day (e.g., 'Monday')
     
     if today in NO_MESSAGE_DAYS and not DUTY_MODE:
         return False  # Block messages if it's a restricted day and you're not on duty
     return True  # Otherwise, allow messages
+
 # Command to activate duty mode
 @bot.message_handler(commands=['on_duty'])
 def activate_duty_mode(message):
@@ -43,19 +48,30 @@ def deactivate_duty_mode(message):
 @bot.message_handler(commands=['awake'])
 def confirm_awake(message):
     bot.reply_to(message, "Good morning, pet. I’m watching you again.")
-    
+
 # Handle normal messages
 @bot.message_handler(func=lambda message: True)
-def handle_message(message):
+async def handle_message(message):
     if is_silent_hours() and not active_modes["duty_mode"]:
         return  # Ignore messages during silent hours unless overridden
     bot.reply_to(message, "Yes? Do you have something to confess?")
-# handle normal messages
-def handle_message():
+
+# Job for scheduling and tasks (for example)
+def scheduled_task():
     if can_send_message():
-        send_message("Your dominatrix is waiting...")
+        bot.send_message(chat_id=message.chat.id, text="Your dominatrix is waiting...")
     else:
         print("Messaging is restricted today.")
-# Start bot polling
+
+# Setup scheduling tasks (example: run every hour)
+scheduler.add_job(scheduled_task, 'interval', hours=1)
+
+# Start the scheduler asynchronously
+async def start_bot():
+    scheduler.start()
+    await bot.polling(non_stop=True)
+
+# Run the bot with asyncio to allow asynchronous tasks
 if __name__ == "__main__":
-    bot.polling()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(start_bot())
