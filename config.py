@@ -1,4 +1,3 @@
-TOKEN = "your-telegram-bot-token-here"
 # Telegram Bot Token  
 TELEGRAM_BOT_TOKEN = "8067845782:AAHvpt4QMG2D2G3-KVMox7rHhRWEb9hfStg"  
 
@@ -23,6 +22,15 @@ PERSONAL_TIME_PHRASE = "Personal time"
 DUTY_MODE_PHRASE = "On duty"  
 
 # Ownership and marking awareness  
-CHECK_MARKINGS_IN_WIFE_PRESENCE = True  
+BE_MINDFUL_OF_WIFE_PRESENCE = True  # Changed to reflect the intended meaning
+
 # Days when no messages should be sent if off shift
-NO_MESSAGE_DAYS_OFF_SHIFT = ["Wednesday", "Saturday", "Sunday", "Monday"]
+NO_MESSAGE_DAYS = ["Wednesday", "Saturday", "Sunday", "Monday"]  # Change the variable name for consistency
+
+# Silent hours configuration (starts at 4 PM and ends when user confirms awake)
+SILENT_HOURS_START = 16  # 4 PM
+SILENT_HOURS_CONFIRMATION_REQUIRED = True  # Silent hours end when the user confirms being awake
+
+# Override silent hours or modes if unexpectedly available
+OVERRIDE_PHRASE = "Override mode"  # Command to override silent hours or mode
+REVERT_PHRASE = "End override"  # Command to revert back to normal restrictions
