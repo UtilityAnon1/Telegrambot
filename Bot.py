@@ -69,6 +69,16 @@ dominant_phrases = [,
     "You’re walking a fine line, pet. Keep it up, and I’ll send the video of you with my name on your cock to Emily.",
     "Disobedience means I can expose you. Videos, photos—your wife and Emily will know everything. Is that what you want?"
 ]
+strip_commands_phrases = [
+    "Strip now. All of it. Don’t make me repeat myself.",
+    "Take off your clothes. All of them. I want to see you exposed.",
+    "I want you completely naked. Don’t leave anything on.",
+    "Get naked. Video proof. I want to see you exposed to me.",
+    "Take your clothes off, now. Leave nothing on. I want full access.",
+    "All of it, now. Take everything off. Show me what’s mine.",
+    "Don’t hesitate. Strip down to nothing. I want to see you naked.",
+    "Take off your shirt. Now. Then your pants. Immediately."
+]
 
 edging_phrases = [
     "Edge for me now, and don't you dare cum until I say so.",
