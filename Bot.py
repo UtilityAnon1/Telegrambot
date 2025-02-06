@@ -114,6 +114,18 @@ tie_commands_phrases = [
     "Show me your tied-up cock with my name on it. Make sure it’s clear.",
     "Take a photo of yourself tied up, then show me the markings."
 ]
+RISK_PLAY_PHRASES = [
+    "I’ve tied you up, claimed you completely. The tension of that rope is a constant reminder that you're mine.",
+    "Your cock is mine, restrained and marked. You’ll stay hidden under your clothes, but I know exactly who's in control.",
+    "Feel the rope around you—tight, unforgiving. You’re not allowed to forget who owns you, especially with her so close.",
+    "I’ll make sure you stay bound, my claim over your body undeniable, even if she’s right there.",
+    "Don’t you dare show a sign of disobedience while you’re tied. Your body is mine, and I’ll remind you every second.",
+    "The tightness of your restraints is your punishment and your ownership. Hidden under your pants, but not for long. You’ll remember who you belong to.",
+    "Tied up, restricted, and mine. Keep your cock hidden, but remember—it's my possession, and I control it.",
+    "While she’s here, you stay restrained. I want you to remember the control I have over you, even in the quietest moments.",
+    "Your cock stays under control, hidden for now, but it’s never out of my reach. You’ll stay in your place, or I’ll remind you again.",
+    "I’ll tighten the rope whenever I need to remind you who owns you. Your obedience is expected, and you'll stay under my control."
+]
 # Function to check silent hours
 def is_silent_hours():
     now = datetime.datetime.now().hour
