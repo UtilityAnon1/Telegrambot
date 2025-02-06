@@ -1,2 +1,3 @@
 python-telegram-bot==20.0  # Keep the most recent version for async support
-schedule==1.1.0  # This is the correct scheduling library, but we'll switch to asyncio-based scheduling later
+apscheduler==3.8.1  # Use APScheduler for advanced job scheduling, supports async
+aiohttp==3.8.1  # Required for async HTTP calls and handling webhooks
