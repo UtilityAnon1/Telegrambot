@@ -74,21 +74,26 @@ class BotMode:
         return False
 
     def resume_all(self):
-        """Resume normal operations with assertive control"""
+        """Resume normal operations with assertive control and state awareness"""
         self.duty_mode = False
         self.family_mode = False
         self.personal_mode = False
         self.emergency_mode = False
         self.active = False
 
-        dominant_returns = [
-            "I'm back in control. Strip for me now.",
-            "Your break is over. Strip immediately.",
-            "Time to submit to me again. Strip now.",
-            "I've returned. Show me your submission. Strip.",
-            "Break time is over. Strip for me now."
-        ]
-        return random.choice(dominant_returns)
+        # Return control messages based on previous state
+        if self.previous_state:
+            dominant_returns = [
+                "I'm back in control. Strip for me now if you aren't already.",
+                "Your break is over. Show me your current state of undress.",
+                "Time to submit to me again. Strip if you haven't maintained it.",
+                "I've returned. Show me your submission state.",
+                "Break time is over. Strip if needed."
+            ]
+            return random.choice(dominant_returns)
+        else:
+            # Fallback if no previous state
+            return "I'm back in control. Strip for me now."
 
 # User state tracking
 user_states = {}
@@ -370,14 +375,15 @@ def handle_messages(message):
                 bot.reply_to(message, random.choice(stern_responses))
                 return
 
-        # Handle resume command with authoritative return
+        # Handle resume command with state awareness
         if text == "resume":
             response = user_state.bot_mode.resume_all()
             if response:
                 bot.reply_to(message, response)
-            # Reset status to force new submission
-            user_state.stripped = False
-            user_state.current_status['is_marked'] = False
+                # Don't reset stripped status, only mark status needs verification
+                user_state.current_status['is_marked'] = False
+                user_state.expecting_media = True
+                user_state.last_command_type = "photo"  # Expect photo to verify state
             return
 
         # Mode command handling with exact matches
@@ -456,7 +462,7 @@ def handle_messages(message):
 
 # Modified handle_photo function to ensure continuous flow
 def handle_photo(message):
-    """Handle photo and video submissions with natural responses"""
+    """Handle photo and video submissions with state awareness"""
     try:
         user_id = message.from_user.id
         user_state = get_user_state(user_id)
@@ -464,6 +470,18 @@ def handle_photo(message):
         # Reset media expectation since they've provided it
         user_state.expecting_media = False
         user_state.last_command_type = None
+
+        # Handle state verification after resume
+        if not user_state.current_status['is_marked'] and user_state.stripped:
+            responses = [
+                f"Good. Now reapply my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
+                f"Perfect. Mark your cock again with my symbol {user_state.current_status['symbol']}. Show me when done.",
+                f"Acceptable. Mark yourself with my symbol {user_state.current_status['symbol']} again. Send proof."
+            ]
+            bot.reply_to(message, random.choice(responses))
+            user_state.expecting_media = True
+            user_state.last_command_type = "mark_photo"
+            return
 
         # Handle check-in responses
         if user_state.current_status['requires_check_in']:
