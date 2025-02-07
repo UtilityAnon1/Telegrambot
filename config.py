@@ -8,7 +8,7 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
 # Bot Configuration
 DUTY_MODE_ACTIVE = True
-OWNER_TELEGRAM_ID = "YOUR_TELEGRAM_USER_ID"  # Replace with your Telegram user ID
+OWNER_TELEGRAM_ID = os.environ.get('OWNER_TELEGRAM_ID', '')  # Made this an environment variable
 
 # Git Configuration
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')

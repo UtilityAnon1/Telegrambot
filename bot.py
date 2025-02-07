@@ -7,14 +7,28 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from config import TELEGRAM_BOT_TOKEN, DUTY_MODE_ACTIVE, OWNER_TELEGRAM_ID
 
-# Set up logging
+# Add debug level logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.DEBUG  # Changed from INFO to DEBUG for more detailed logs
 )
 logger = logging.getLogger(__name__)
 
-# Add these near the top of the file, after the existing imports and before the bot initialization
+# Initialize the bot
+logger.info("Initializing bot with token: %s", TELEGRAM_BOT_TOKEN[:10] + '...')
+bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+
+# Add handler logging wrapper
+def log_message_handler(func):
+    def wrapper(message):
+        logger.debug(f"Handling message: {message.text} from user {message.from_user.id}")
+        try:
+            return func(message)
+        except Exception as e:
+            logger.error(f"Error in {func.__name__}: {str(e)}", exc_info=True)
+            bot.reply_to(message, "An error occurred. Please try again.")
+    return wrapper
+
 class BotMode:
     def __init__(self):
         self.duty_mode = False
@@ -45,10 +59,6 @@ class BotMode:
         self.emergency_mode = False
         self.active = False
         return "All modes cleared. Resuming normal operations."
-
-# Initialize the bot
-logger.info("Initializing bot with token: %s", TELEGRAM_BOT_TOKEN[:10] + '...')
-bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
 # User state tracking
 user_states = {}
@@ -363,11 +373,14 @@ def schedule_check_in(chat_id, user_state):
 
 
 @bot.message_handler(func=lambda message: True)
+@log_message_handler
 def handle_messages(message):
     try:
         user_id = message.from_user.id
         user_state = get_user_state(user_id)
         text = message.text.lower()
+
+        logger.debug(f"Processing message: {text} from user {user_id}")
 
         # Mode command handling
         if text == "resume":
@@ -445,7 +458,8 @@ def handle_messages(message):
             bot.reply_to(message, f"I expect clear communication. State your purpose or await my commands. {punishment}")
 
     except Exception as e:
-        logger.error(f"Error handling message: {str(e)}")
+        logger.error(f"Error handling message: {str(e)}", exc_info=True)
+        bot.reply_to(message, "An error occurred. Please try again.")
 
 def handle_photo(message):
     """Handle photo and video submissions with progressive responses"""
