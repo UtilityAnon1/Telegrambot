@@ -1,6 +1,8 @@
 import telebot
 import asyncio
 import logging
+import random
+from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from config import TELEGRAM_BOT_TOKEN, DUTY_MODE_ACTIVE, OWNER_TELEGRAM_ID
 
@@ -15,110 +17,239 @@ logger = logging.getLogger(__name__)
 logger.info("Initializing bot with token: %s", TELEGRAM_BOT_TOKEN[:10] + '...')
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
-# Active mode tracking
-active_modes = {
-    "duty_mode": DUTY_MODE_ACTIVE,
-    "family_time": False,
-    "personal_time": False,
-    "emergency_shutdown": False,  # Emergency shutdown
-    "family_time_duration": None,  # For tracking family time window
-    "personal_time_duration": None  # For tracking personal time window
+# User state tracking
+user_states = {}
+USER_STATE_NEW = "new"
+USER_STATE_INTRODUCED = "introduced"
+USER_STATE_RULES_GIVEN = "rules_given"
+USER_STATE_OWNED = "owned"
+
+class UserState:
+    def __init__(self):
+        self.state = USER_STATE_NEW
+        self.last_command = None
+        self.marked = False
+        self.stripped = False
+        self.obedience_score = 0
+        self.last_interaction = datetime.now()
+
+# Introduction messages
+introduction_sequence = [
+    "Welcome, pet. I am Mistress, and from this moment forward, you belong to me.",
+    "Before we proceed, you need to understand the rules of our arrangement.",
+    "Rule 1: You will address me as Mistress at all times.",
+    "Rule 2: When I give you a command, you will obey immediately.",
+    "Rule 3: Your body belongs to me. You will prove this through actions, not words.",
+    "Rule 4: Disobedience will be punished severely.",
+    "Are you prepared to submit to these rules? Answer 'Yes, Mistress' to proceed."
+]
+
+# Command patterns
+command_patterns = {
+    "strip": ["strip", "undress", "naked", "clothes off"],
+    "mark": ["mark", "write", "label"],
+    "submit": ["submit", "obey", "serve"],
+    "yes_mistress": ["yes mistress", "yes, mistress", "yes goddess", "yes, goddess"],
+    "greet": ["hello", "hi", "hey", "greetings"]
 }
 
-# Scheduler for automated messaging
-scheduler = AsyncIOScheduler()
+def get_user_state(user_id):
+    if user_id not in user_states:
+        user_states[user_id] = UserState()
+    return user_states[user_id]
 
-# Message pools to prevent repetition and add dynamic learning
-dominant_phrases = [
-    "Your cock belongs to me, not to you.",
-    "Strip. Now. Don't make me ask again.",
-    "I don't like waiting. Take off everything. You know the rules.",
-    "You belong to me. You don't get to say no.",
-    "Get naked, now. Video proof. Don't test me.",
-    "I want you exposed. I want you helpless. I want you **mine**.",
-    "Your wife thinks she knows everything about you. Should I prove her wrong?",
-    "You wouldn't dare disobey me if your wife was watching, would you?",
-    "You have seconds to obey before I start making this **very real** for you.",
-    "You know I control you. Get naked, show me proof, and **thank me for the privilege.**",
-    "Imagine if your wife saw this. Maybe I should help make that happen.",
-    "Emily would love to see you grovel at my feet. Don't make me call her in.",
-    "Want to test my patience? Wait until I show your wife your dirty little secrets.",
-    "You can try to resist, but you know who owns you. Keep pushing, and I'll show both your wife and Emily who really has control.",
-    "What would Emily say if she saw you failing like this? You're on thin ice.",
-    "Do you think Emily would be proud of your behavior? Show me you can obey, or I'll let her know.",
-    "Those videos and photos of you naked, tied up with my name on them... how long do you think you can keep that secret from your wife?",
-    "If you fail again, I'll send those photos and videos to your wife. I wonder how she'll react when she sees you like this.",
-    "Those videos of you naked? You don't want me to share them, do you? I'll send them straight to Emily if you keep misbehaving.",
-    "If you disobey again, I'll show your wife what you've been doing behind her back. I wonder how she'll feel about those photos of you.",
-    "You're walking a fine line, pet. Keep it up, and I'll send the video of you with my name on your cock to Emily.",
-    "Disobedience means I can expose you. Videos, photos—your wife and Emily will know everything. Is that what you want?"
-]
+def update_user_state(user_id, new_state):
+    if user_id in user_states:
+        user_states[user_id].state = new_state
+        user_states[user_id].last_interaction = datetime.now()
 
-punishment_phrases = [
-    "You just made a mistake. A big one.",
-    "I don't tolerate failure. You **will** be punished.",
-    "Ignoring me? Bad move. Maybe I should let your wife in on our little secret?",
-    "You forget who owns you. Maybe a little reminder is needed?",
-    "You're playing a dangerous game. Should I show your wife what you're up to?",
-    "Disobedience means consequences. You know what happens next.",
-    "You're testing me, aren't you? I can't wait to show Emily your little secret.",
-    "Your wife would be so disappointed to see this. Want to test me further?",
-    "One more mistake, and Emily will know exactly what you're doing.",
-    "Keep disobeying, and your wife won't be the only one who finds out.",
-    "Think Emily won't care? Keep pushing, and she'll know all about your little rebellion.",
-    "If you keep this up, I'm showing your wife your secrets. Let's see how she reacts.",
-    "You know those photos of you tied up with my name on your cock? I can always send them to your wife. Think she'd enjoy that?",
-    "Those videos of you naked? You don't want me to share them, do you? I'll send them straight to Emily if you keep misbehaving.",
-    "If you disobey again, I'll show your wife what you've been doing behind her back. I wonder how she'll feel about those photos of you.",
-    "You're walking a fine line, pet. Keep it up, and I'll send the video of you with my name on your cock to Emily.",
-    "Disobedience means I can expose you. Videos, photos—your wife and Emily will know everything. Is that what you want?"
-]
+def handle_new_user(message):
+    """Handle interaction with new users"""
+    user_id = message.from_user.id
+    bot.reply_to(message, introduction_sequence[0])
+    bot.send_message(message.chat.id, introduction_sequence[1])
+    for rule in introduction_sequence[2:6]:
+        bot.send_message(message.chat.id, rule)
+    bot.send_message(message.chat.id, introduction_sequence[6])
+    update_user_state(user_id, USER_STATE_INTRODUCED)
 
-# Helper function to check for natural speech
-def handle_user_message(message):
+def handle_strip_command(message):
+    """Handle strip commands with progressive intensity"""
+    user_state = get_user_state(message.from_user.id)
+    if not user_state.stripped:
+        response = "Strip for me. Now. Send photo evidence of your obedience."
+    else:
+        response = "Good pet. Stay naked until I give you permission to dress."
+    user_state.stripped = True
+    bot.reply_to(message, response)
+
+def handle_mark_command(message):
+    """Handle marking commands"""
+    user_state = get_user_state(message.from_user.id)
+    if not user_state.marked:
+        response = "Write 'Property of Mistress' on yourself. Send photo evidence."
+    else:
+        response = "Good. Remember who owns you."
+    user_state.marked = True
+    bot.reply_to(message, response)
+
+def check_command_patterns(text, patterns):
+    """Check if any command patterns match the message"""
+    text = text.lower()
+    return any(pattern in text for pattern in patterns)
+
+@bot.message_handler(func=lambda message: True)
+def handle_messages(message):
     try:
+        user_id = message.from_user.id
+        user_state = get_user_state(user_id)
         text = message.text.lower()
-        response = None
 
-        # Simple keyword-based adaptive responses
-        if "obedience" in text:
-            response = "Good. Obey me, and you may just get some rewards."
-        elif "disobey" in text:
-            response = "You don't want to test my patience. Obey or face the consequences."
-        elif "wife" in text:
-            response = "If you want to keep your secrets from her, you better stay obedient."
-        elif "marking" in text:
-            response = "Marking yourself is your responsibility. Don't let me down."
+        # Handle new users
+        if user_state.state == USER_STATE_NEW:
+            handle_new_user(message)
+            return
 
-        if response:
-            bot.reply_to(message, response)
-        else:
-            # Default response
-            bot.reply_to(message, "I don't have time for excuses. Obey.")
+        # Handle user responses based on state
+        if user_state.state == USER_STATE_INTRODUCED:
+            if check_command_patterns(text, command_patterns["yes_mistress"]):
+                bot.reply_to(message, "Good pet. Your training begins now. Strip for me.")
+                update_user_state(user_id, USER_STATE_RULES_GIVEN)
+                return
+            else:
+                bot.reply_to(message, "I expect proper respect. Address me as 'Mistress' and try again.")
+                return
+
+        # Handle strip commands
+        if check_command_patterns(text, command_patterns["strip"]):
+            handle_strip_command(message)
+            return
+
+        # Handle mark commands
+        if check_command_patterns(text, command_patterns["mark"]):
+            handle_mark_command(message)
+            return
+
+        # Handle greetings
+        if check_command_patterns(text, command_patterns["greet"]):
+            if "mistress" in text:
+                bot.reply_to(message, "Good pet. You remember how to address me properly.")
+            else:
+                bot.reply_to(message, "You will address me as Mistress. Try again.")
+            return
+
+        # Default response based on user state
+        if not any(pattern in text for patterns in command_patterns.values()):
+            bot.reply_to(message, "I expect clear communication. State your purpose or await my commands.")
+
     except Exception as e:
-        logger.error("Error handling message: %s", str(e))
+        logger.error(f"Error handling message: {str(e)}")
 
-# Handle photo submissions
-@bot.message_handler(content_types=['photo'])
+@bot.message_handler(content_types=['photo', 'video'])
 def handle_photo(message):
     try:
-        photo_id = message.photo[-1].file_id  # Get the highest resolution photo
-        file_info = bot.get_file(photo_id)
-        file_url = f'https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_info.file_path}'
+        user_id = message.from_user.id
+        user_state = get_user_state(user_id)
 
-        # For now, a simple acknowledgment of the photo
-        bot.reply_to(message, f"Photo received. You better hope it's what I asked for. Don't disappoint me.")
+        # Progressive responses based on user state
+        if user_state.state == USER_STATE_RULES_GIVEN and not user_state.stripped:
+            responses = [
+                "Good pet. I can see you know how to obey. Now, write 'Property of Mistress' clearly on your body.",
+                "That's what I like to see. Your next task is to mark yourself as my property.",
+                "Excellent start. Now prove your dedication by marking yourself as mine."
+            ]
+            bot.reply_to(message, random.choice(responses))
+            user_state.stripped = True
+            handle_mark_command(message)
+
+        elif user_state.stripped and not user_state.marked:
+            responses = [
+                "Perfect. You're learning quickly. I want you to stay exactly like this.",
+                "Good boy. Your obedience is pleasing. Keep yourself marked and await my next command.",
+                "Excellent. You're proving yourself worthy of my attention. Stand by for further instructions."
+            ]
+            bot.reply_to(message, random.choice(responses))
+            user_state.marked = True
+
+            # Progress to next tasks after a short delay
+            def send_follow_up():
+                follow_ups = [
+                    "Now, show me you're still marked and stripped. Send another photo.",
+                    "I want to see you're maintaining your state of submission. Photo evidence, now.",
+                    "Prove you're still following my instructions. Send a new photo."
+                ]
+                bot.send_message(message.chat.id, random.choice(follow_ups))
+
+            # Schedule follow-up message after 2-3 minutes
+            scheduler = AsyncIOScheduler()
+            scheduler.add_job(send_follow_up, 'date', 
+                            run_date=datetime.now() + timedelta(minutes=random.randint(2, 3)))
+            scheduler.start()
+
+        else:
+            # General photo/video responses for ongoing submission
+            responses = [
+                "Good pet. Your continued obedience pleases me. Await your next task.",
+                "Excellent. You understand your place. Stay ready for my next command.",
+                "Perfect. You're learning well. I have more plans for you shortly.",
+                "Very good. Your submission is noted. Prepare yourself for what comes next."
+            ]
+
+            # Add specific responses for videos
+            if message.content_type == 'video':
+                video_responses = [
+                    "Mmm, watching you submit like this pleases me. Keep going.",
+                    "Such an obedient display. I expect more videos like this.",
+                    "Your submission in motion is particularly pleasing. More.",
+                ]
+                responses.extend(video_responses)
+
+            bot.reply_to(message, random.choice(responses))
+
+            # Schedule next task with progressive difficulty
+            def send_next_task():
+                tasks = [
+                    "Now strip completely and show me a full video of your submission.",
+                    "I want to see you following my previous instructions. Show me.",
+                    "Time to prove your continued obedience. Strip and mark yourself again.",
+                    "Show me how well you maintain your marks. Full video evidence required."
+                ]
+                bot.send_message(message.chat.id, random.choice(tasks))
+
+            # Schedule next task after 3-5 minutes
+            scheduler = AsyncIOScheduler()
+            scheduler.add_job(send_next_task, 'date',
+                            run_date=datetime.now() + timedelta(minutes=random.randint(3, 5)))
+            scheduler.start()
+
     except Exception as e:
-        logger.error("Error handling photo: %s", str(e))
+        logger.error(f"Error handling photo/video: {str(e)}")
+
+def send_progressive_task(chat_id, user_state):
+    """Send the next appropriate task based on user's progress"""
+    if not user_state.stripped:
+        tasks = [
+            "Strip for me now. Send photo evidence of your obedience.",
+            "I want to see you naked. Now. Photo evidence required.",
+            "Remove your clothes immediately. Show me proof of your submission."
+        ]
+    elif not user_state.marked:
+        tasks = [
+            "Write 'Property of Mistress' on yourself. Make it clear and visible.",
+            "Mark yourself as mine. I want to see my ownership displayed on your body.",
+            "Time to show your dedication. Write my mark on yourself and show me."
+        ]
+    else:
+        tasks = [
+            "Show me you're maintaining your state of submission. Photo evidence required.",
+            "Prove you're still following my instructions. Strip and show me.",
+            "Time for another inspection. Show me you're still marked and ready."
+        ]
+    bot.send_message(chat_id, random.choice(tasks))
 
 if __name__ == '__main__':
     try:
         logger.info("Starting bot polling...")
-        @bot.message_handler(func=lambda message: True)
-        def any_message(message):
-            # Handle all incoming messages
-            handle_user_message(message)
-
         bot.polling(none_stop=True)
     except Exception as e:
-        logger.error("Critical error: %s", str(e))
+        logger.error(f"Critical error: {str(e)}")
