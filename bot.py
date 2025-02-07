@@ -105,6 +105,8 @@ class UserState:
         self.stripped = False
         self.obedience_score = 0
         self.last_interaction = datetime.now()
+        self.expecting_media = False  # Track if we're expecting photo/video
+        self.last_command_type = None  # Track what type of media we're expecting
         # Enhanced memory tracking
         self.disobedience_count = 0
         self.exposure_threat_level = 0
@@ -126,7 +128,7 @@ class UserState:
             'requires_check_in': False,
             'symbol': '△'  # Default symbol is a triangle
         }
-        self.bot_mode = BotMode()  # Add this line to include mode tracking
+        self.bot_mode = BotMode()
 
 def generate_punishment_response(user_state):
     """Generate realistic punishment responses"""
@@ -339,7 +341,6 @@ def schedule_check_in(chat_id, user_state):
     schedule_next_check_in()
 
 
-
 @bot.message_handler(func=lambda message: True)
 @log_message_handler
 def handle_messages(message):
@@ -349,6 +350,25 @@ def handle_messages(message):
         text = message.text.lower()
 
         logger.debug(f"Processing message: {text} from user {user_id}")
+
+        # Check if we're expecting media but got text instead
+        if user_state.expecting_media:
+            if user_state.last_command_type == "edge_video":
+                stern_responses = [
+                    "I ordered you to edge and send video proof. Do it now.",
+                    "You will edge for me and show me proof. Now.",
+                    "I expect video proof of your edging. Disobey again and there will be consequences."
+                ]
+                bot.reply_to(message, random.choice(stern_responses))
+                return
+            elif user_state.last_command_type == "mark_photo":
+                stern_responses = [
+                    f"Show me my symbol {user_state.current_status['symbol']} marked on your cock. Now.",
+                    "I ordered you to mark yourself and send proof. Do it.",
+                    "You will mark yourself as commanded and show me. Now."
+                ]
+                bot.reply_to(message, random.choice(stern_responses))
+                return
 
         # Handle resume command with authoritative return
         if text == "resume":
@@ -441,6 +461,10 @@ def handle_photo(message):
         user_id = message.from_user.id
         user_state = get_user_state(user_id)
 
+        # Reset media expectation since they've provided it
+        user_state.expecting_media = False
+        user_state.last_command_type = None
+
         # Handle check-in responses
         if user_state.current_status['requires_check_in']:
             user_state.current_status['last_check_in'] = datetime.now()
@@ -452,6 +476,8 @@ def handle_photo(message):
                 f"You maintain my symbol {user_state.current_status['symbol']} perfectly. Edge for me. Record it."
             ]
             bot.reply_to(message, random.choice(responses))
+            user_state.expecting_media = True
+            user_state.last_command_type = "edge_video"
             return
 
         # Initial strip response
@@ -464,6 +490,8 @@ def handle_photo(message):
             bot.reply_to(message, random.choice(responses))
             user_state.stripped = True
             user_state.current_status['is_marked'] = False
+            user_state.expecting_media = True
+            user_state.last_command_type = "mark_photo"
             return
 
         # Marking verification and immediate follow-up
@@ -476,6 +504,8 @@ def handle_photo(message):
             bot.reply_to(message, random.choice(responses))
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
+            user_state.expecting_media = True
+            user_state.last_command_type = "edge_video"
             return
 
         # Handle subsequent media submissions
@@ -486,6 +516,8 @@ def handle_photo(message):
                 "You please me. Edge again. Record it."
             ]
             bot.reply_to(message, random.choice(responses))
+            user_state.expecting_media = True
+            user_state.last_command_type = "edge_video"
 
     except Exception as e:
         logger.error(f"Error handling photo/video: {str(e)}", exc_info=True)
