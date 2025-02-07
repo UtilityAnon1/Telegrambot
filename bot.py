@@ -48,11 +48,11 @@ class UserState:
         # Tracking current status
         self.current_status = {
             'is_marked': False,
-            'mark_location': None,  # Will only ever be "cock" when marked
+            'mark_location': None,
             'is_tied': False,
-            'tied_location': None,  # Will only ever be "cock_and_balls" when tied
             'last_check_in': None,
-            'requires_check_in': False
+            'requires_check_in': False,
+            'symbol': '△'  # Default symbol is a triangle
         }
 
 def generate_punishment_response(user_state):
@@ -176,7 +176,7 @@ introduction_sequence = [
     "Before we proceed, you need to understand the rules of our arrangement:",
     "Rule 1: You will address me as Mistress at all times. Every message must show your respect.",
     "Rule 2: When I give you a command, you will obey immediately and without question.",
-    "Rule 3: Your cock belongs to me. You will prove this through actions, not words.",
+    "Rule 3: Your body belongs to me. You will prove this through actions, not words.",
     "Rule 4: You will document your submission with photos and videos as I demand.",
     "Rule 5: Disobedience will result in severe punishment.",
     "Are you prepared to submit to these rules and accept your place as my property? Answer 'Yes, Mistress' to proceed."
@@ -234,8 +234,8 @@ def handle_strip_command(message):
     else:
         responses = [
             "Mmm, seeing you naked pleases me. Now it's time to mark what belongs to me.",
-            "Good pet. Your body is mine to command. Now you'll prove it by marking your cock.",
-            "Perfect. Now write 'Property of Mistress' on your cock where I can see it clearly. Show me with photos AND video."
+            "Good pet. Your body is mine to command. Now you'll prove it by marking yourself.",
+            "Perfect. Now write 'Property of Mistress' where I can see it clearly. Show me with photos AND video."
         ]
 
     bot.reply_to(message, random.choice(responses))
@@ -250,16 +250,16 @@ def handle_mark_command(message):
     else:
         if not user_state.current_status['is_marked']:
             responses = [
-                "Write 'Property of Mistress' on your cock. Send photo evidence.",
-                "Mark your cock as my property. Write 'Property of Mistress' clearly and visibly.",
-                "Time to label what belongs to me. Write 'Property of Mistress' on your cock and show me."
+                f"Mark my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
+                f"Time to mark what's mine. Draw my symbol {user_state.current_status['symbol']} on your cock.",
+                f"My symbol {user_state.current_status['symbol']} belongs on your cock. Show me when it's done."
             ]
             response = random.choice(responses)
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
             schedule_check_in(message.chat.id, user_state)
         else:
-            response = "Your cock is properly marked as my property. Maintain it until I say otherwise."
+            response = f"My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it until I say otherwise."
 
     bot.reply_to(message, response)
 
@@ -294,31 +294,40 @@ def generate_discreet_response(user_state):
     return random.choice(discreet_responses)
 
 def schedule_check_in(chat_id, user_state):
-    """Schedule next check-in for markings or bondage"""
+    """Schedule hourly check-ins for markings or bondage"""
     def send_check_in():
         if user_state.current_status['is_marked']:
             messages = [
-                "Show me my mark on your cock is still visible.",
-                "Prove you've maintained my marking on your cock.",
-                "I want to see my property is still properly labeled. Show me your marked cock."
+                f"Show me my symbol {user_state.current_status['symbol']} is still visible on your cock.",
+                f"Time for your hourly check-in. Prove my symbol {user_state.current_status['symbol']} is still clear on your cock.",
+                f"Hourly inspection time. Show me my symbol {user_state.current_status['symbol']} remains on my property."
             ]
         elif user_state.current_status['is_tied']:
             messages = [
-                "Show me your cock and balls are still properly bound.",
-                "Prove you haven't loosened the restraints on your cock and balls.",
-                "I want to see you're maintaining the bonds on your cock and balls."
+                "Time for your hourly check-in. Show me your cock and balls are still properly bound.",
+                "Hourly inspection. Prove you've maintained the restraints on your cock and balls.",
+                "Show me your hourly proof that your cock and balls remain properly bound."
             ]
 
         if not user_state.known_personal_info['wife_present']:
             bot.send_message(chat_id, random.choice(messages))
             user_state.current_status['requires_check_in'] = True
+            # Schedule next check-in immediately after this one
+            schedule_next_check_in()
 
-    # Schedule next check-in (15-30 minutes if marked, 5-10 if tied)
-    minutes = random.randint(15, 30) if user_state.current_status['is_marked'] else random.randint(5, 10)
+    def schedule_next_check_in():
+        # Schedule next check-in exactly 1 hour from now
+        scheduler.add_job(send_check_in, 'date', 
+                        run_date=datetime.now() + timedelta(hours=1))
+
+    # Initialize the scheduler if not already running
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(send_check_in, 'date', 
-                     run_date=datetime.now() + timedelta(minutes=minutes))
-    scheduler.start()
+    if not scheduler.running:
+        scheduler.start()
+
+    # Schedule first check-in
+    schedule_next_check_in()
+
 
 
 @bot.message_handler(func=lambda message: True)
@@ -394,9 +403,9 @@ def handle_photo(message):
 
             if user_state.current_status['is_marked']:
                 responses = [
-                    "Good pet, keeping my mark visible as required.",
-                    "Excellent, my property remains properly labeled.",
-                    "Perfect, you maintain my mark well."
+                    f"Good pet, my symbol {user_state.current_status['symbol']} remains clear and visible.",
+                    f"Excellent, you maintain my mark {user_state.current_status['symbol']} properly.",
+                    f"Perfect, my symbol {user_state.current_status['symbol']} shows your continued submission."
                 ]
             elif user_state.current_status['is_tied']:
                 responses = [
@@ -412,9 +421,9 @@ def handle_photo(message):
         # Enhanced responses for initial strip command
         if user_state.state == USER_STATE_RULES_GIVEN and not user_state.stripped:
             responses = [
-                "Mmm, good pet. I can see you know how to follow orders. But I want more. Write 'Property of Mistress' on that body that belongs to me now.",
-                "Yes, that's exactly what I wanted to see. Now it's time to mark yourself as mine. Write 'Property of Mistress' where I can see it clearly.",
-                "You're learning quickly. Now prove your dedication by marking yourself as my property. Write it clearly and show me."
+                f"Mmm, good pet. Now it's time to mark yourself with my symbol {user_state.current_status['symbol']}.",
+                f"Yes, that's exactly what I wanted to see. Now it's time to mark yourself as mine with my symbol {user_state.current_status['symbol']}.",
+                f"You're learning quickly. Now prove your dedication by marking my symbol {user_state.current_status['symbol']} where I can see it."
             ]
 
             if user_state.known_personal_info['has_wife']:
@@ -432,9 +441,9 @@ def handle_photo(message):
         # Enhanced responses for marking photos
         elif user_state.stripped and not user_state.current_status['is_marked']:
             responses = [
-                "Perfect. Your cock is properly labeled as my property. Keep it exactly like this until I say otherwise.",
-                "Mmm, seeing my mark on your cock pleases me. Stay stripped and marked, pet. I'm not done with you yet.",
-                "Good pet. Your cock wears my mark well. Now maintain this state of submission and await my next command."
+                f"Perfect. My symbol {user_state.current_status['symbol']} marks you as mine. Keep it exactly like this until I say otherwise.",
+                f"Mmm, seeing my symbol {user_state.current_status['symbol']} on you pleases me. Stay stripped and marked, pet. I'm not done with you yet.",
+                f"Good pet. You wear my symbol {user_state.current_status['symbol']} well. Now maintain this state of submission and await my next command."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.current_status['is_marked'] = True
