@@ -14,6 +14,38 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Add these near the top of the file, after the existing imports and before the bot initialization
+class BotMode:
+    def __init__(self):
+        self.duty_mode = False
+        self.family_mode = False
+        self.personal_mode = False
+        self.emergency_mode = False
+        self.active = False  # Tracks if any mode is active
+
+    def set_mode(self, mode_name):
+        # Reset all modes first
+        self.duty_mode = False
+        self.family_mode = False
+        self.personal_mode = False
+        self.emergency_mode = False
+
+        # Set the requested mode
+        if hasattr(self, mode_name):
+            setattr(self, mode_name, True)
+            self.active = True
+            return f"{mode_name.replace('_', ' ').title()} activated. Use 'Resume' to return to normal operation."
+        return False
+
+    def resume_all(self):
+        """Resume normal operations by clearing all modes"""
+        self.duty_mode = False
+        self.family_mode = False
+        self.personal_mode = False
+        self.emergency_mode = False
+        self.active = False
+        return "All modes cleared. Resuming normal operations."
+
 # Initialize the bot
 logger.info("Initializing bot with token: %s", TELEGRAM_BOT_TOKEN[:10] + '...')
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
@@ -54,6 +86,7 @@ class UserState:
             'requires_check_in': False,
             'symbol': '△'  # Default symbol is a triangle
         }
+        self.bot_mode = BotMode()  # Add this line to include mode tracking
 
 def generate_punishment_response(user_state):
     """Generate escalating punishment responses based on user history and context"""
@@ -318,7 +351,7 @@ def schedule_check_in(chat_id, user_state):
     def schedule_next_check_in():
         # Schedule next check-in exactly 1 hour from now
         scheduler.add_job(send_check_in, 'date', 
-                        run_date=datetime.now() + timedelta(hours=1))
+                            run_date=datetime.now() + timedelta(hours=1))
 
     # Initialize the scheduler if not already running
     scheduler = AsyncIOScheduler()
@@ -329,13 +362,38 @@ def schedule_check_in(chat_id, user_state):
     schedule_next_check_in()
 
 
-
 @bot.message_handler(func=lambda message: True)
 def handle_messages(message):
     try:
         user_id = message.from_user.id
         user_state = get_user_state(user_id)
         text = message.text.lower()
+
+        # Mode command handling
+        if text == "resume":
+            status = user_state.bot_mode.resume_all()
+            bot.reply_to(message, status)
+            return
+
+        # Mode-specific commands
+        mode_commands = {
+            "on duty": "duty_mode",
+            "family first": "family_mode",
+            "me time": "personal_mode",
+            "emergency": "emergency_mode"
+        }
+
+        # Check for mode activation commands
+        for cmd, mode in mode_commands.items():
+            if cmd in text:
+                status = user_state.bot_mode.set_mode(mode)
+                if status:
+                    bot.reply_to(message, status)
+                return
+
+        # If any mode is active, don't process messages
+        if user_state.bot_mode.active:
+            return
 
         # Check for wife's presence first
         if handle_wife_presence(message):
