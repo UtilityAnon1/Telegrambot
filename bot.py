@@ -37,8 +37,6 @@ class BotMode:
         self.emergency_mode = False
         self.active = False  # Tracks if any mode is active
         self.previous_state = None  # Store previous state before going silent
-        self.current_status = {} # Added to store current status
-
 
     def set_mode(self, mode_name):
         # Store current state before changing modes
@@ -47,8 +45,7 @@ class BotMode:
             'family_mode': self.family_mode,
             'personal_mode': self.personal_mode,
             'emergency_mode': self.emergency_mode,
-            'active': self.active,
-            'last_command_sequence': self.current_status if hasattr(self, 'current_status') else None
+            'active': self.active
         }
 
         # Reset all modes first
@@ -58,10 +55,22 @@ class BotMode:
         self.emergency_mode = False
 
         # Set the requested mode
-        if hasattr(self, mode_name):
-            setattr(self, mode_name, True)
+        if mode_name == 'duty_mode':
+            self.duty_mode = True
             self.active = True
-            return f"{mode_name.replace('_', ' ').title()} activated. Use 'Resume' to return to normal operation."
+            return "Duty mode activated. I will remain silent. Use 'resume' to return to normal operation."
+        elif mode_name == 'family_mode':
+            self.family_mode = True
+            self.active = True
+            return "Family mode activated. I will remain silent. Use 'resume' to return to normal operation."
+        elif mode_name == 'personal_mode':
+            self.personal_mode = True
+            self.active = True
+            return "Personal mode activated. I will remain silent. Use 'resume' to return to normal operation."
+        elif mode_name == 'emergency_mode':
+            self.emergency_mode = True
+            self.active = True
+            return "Emergency mode activated. I will remain silent. Use 'resume' to return to normal operation."
         return False
 
     def resume_all(self):
@@ -343,14 +352,15 @@ def handle_messages(message):
 
         # Handle resume command with authoritative return
         if text == "resume":
-            status = user_state.bot_mode.resume_all()
-            bot.reply_to(message, status)
+            response = user_state.bot_mode.resume_all()
+            if response:
+                bot.reply_to(message, response)
             # Reset status to force new submission
             user_state.stripped = False
             user_state.current_status['is_marked'] = False
             return
 
-        # Mode command handling
+        # Mode command handling with exact matches
         mode_commands = {
             "on duty": "duty_mode",
             "family first": "family_mode",
@@ -360,13 +370,13 @@ def handle_messages(message):
 
         # Check for mode activation commands
         for cmd, mode in mode_commands.items():
-            if cmd in text:
-                status = user_state.bot_mode.set_mode(mode)
-                if status:
-                    bot.reply_to(message, status)
+            if text == cmd:  # Changed to exact match
+                response = user_state.bot_mode.set_mode(mode)
+                if response:
+                    bot.reply_to(message, response)
                 return
 
-        # If any mode is active, don't process messages
+        # If any mode is active, don't process further messages
         if user_state.bot_mode.active:
             return
 
