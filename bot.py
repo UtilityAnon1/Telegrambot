@@ -109,21 +109,20 @@ def generate_punishment_response(user_state):
     ]
 
     exposure_threats = [
-        "Your wife would be interested to see these photos, wouldn't she?",
-        "One click and your wife sees everything. Remember that.",
-        "I wonder what your wife would think of these marks?",
-        "These photos could reach your wife so easily. Don't test me.",
-        "Should we show your wife how pathetic you look right now?",
-        "I'm getting closer to sending these to your wife with each disobedience.",
-        "Your wife deserves to know what a submissive pet you've become.",
-        "Keep testing me, and your wife will receive quite an interesting email."
+        "Your disobedience is noted.",
+        "One more slip and there will be consequences.",
+        "This behavior is unacceptable.",
+        "I'm getting closer to harsher punishments.",
+        "Disobedience will not be tolerated.",
+        "Consider this a warning.",
+        "Your continued defiance is disappointing.",
+        "I expect better from you."
+
     ]
 
     intense_punishments = [
         "Edge yourself until you're begging. Then edge 5 more times.",
-        "Each photo will be one step closer to your wife's inbox.",
         "Time for a ruined orgasm. Edge 10 times, then ruin it completely.",
-        "Your wife will love seeing how pathetic you are.",
         "Force {forced_count} orgasms in a row. Each one more painful than the last.",
         "Edge constantly for the next hour. Send video proof every 10 minutes.",
         "You'll edge 20 times, then beg me for a ruined orgasm.",
@@ -131,15 +130,6 @@ def generate_punishment_response(user_state):
         "Your cock is mine to torture. Edge until you can't think straight."
     ]
 
-    # If wife is present, only use very discreet punishments
-    if user_state.known_personal_info['wife_present']:
-        discreet_punishments = [
-            "Find a private moment later. You know what's expected.",
-            "Your punishment awaits when you're alone.",
-            "We'll address this disobedience when you have privacy.",
-            "Remember your place. We'll continue this later."
-        ]
-        return random.choice(discreet_punishments)
 
     # Calculate punishment intensity based on history
     intensity = min(user_state.disobedience_count + user_state.session_strikes, 10)
@@ -166,16 +156,15 @@ def generate_punishment_response(user_state):
     response.append(base)
 
     # Add exposure threats if wife is known
-    if user_state.known_personal_info['has_wife']:
-        if user_state.exposure_threat_level > 3:
-            response.append(random.choice(intense_punishments).format(
-                forced_count=forced_count
-            ))
-            if user_state.exposure_threat_level > 5:
-                response.append("Your disobedience is pushing me closer to exposing you completely.")
-        else:
-            response.append(random.choice(exposure_threats))
-            user_state.exposure_threat_level += 1
+    if user_state.exposure_threat_level > 3:
+        response.append(random.choice(intense_punishments).format(
+            forced_count=forced_count
+        ))
+        if user_state.exposure_threat_level > 5:
+            response.append("Your disobedience is pushing me closer to exposing you completely.")
+    else:
+        response.append(random.choice(exposure_threats))
+        user_state.exposure_threat_level += 1
 
     # Track punishment history with more detail
     user_state.punishment_history.append({
@@ -195,20 +184,6 @@ def handle_disobedience(message):
     user_state.session_strikes += 1
 
     punishment = generate_punishment_response(user_state)
-
-    # Enhanced wife-related responses
-    if "wife" in message.text.lower():
-        if not user_state.known_personal_info['has_wife']:
-            user_state.known_personal_info['has_wife'] = True
-            punishment = f"Interesting... you have a wife? That information will be very useful. {punishment}"
-        else:
-            wife_mentions = [
-                "Mentioning your wife again? You must want her to know about this.",
-                "Your wife keeps coming up... Perhaps you're hoping I'll tell her?",
-                "You can't stop thinking about what your wife would say, can you?",
-                "Every time you mention your wife, you risk exposure even more."
-            ]
-            punishment = f"{random.choice(wife_mentions)} {punishment}"
 
     return punishment
 
@@ -288,38 +263,37 @@ def handle_new_user(message):
         bot.reply_to(message, "An error occurred during introduction. Please try again by saying 'hello'.")
 
 def handle_strip_command(message):
-    """Handle strip commands with progressive intensity"""
+    """Handle strip commands with direct authority"""
     user_state = get_user_state(message.from_user.id)
 
-    # First time stripping command
     if not user_state.stripped:
         responses = [
-            "Strip for me now. Send me video proof of your submission.",
-            "Remove your clothes and show me video proof of your obedience.",
-            "Time to strip. I expect video evidence of your submission."
+            "Strip for me now. Send me video proof.",
+            "Remove your clothes. Show me video proof.",
+            "Time to strip. Send video evidence."
         ]
         bot.reply_to(message, random.choice(responses))
     else:
         responses = [
-            "Good pet. You please me with your obedience. Ready for your next task?",
-            "You follow instructions well. Let's see what comes next.",
-            "Such an obedient pet. Prepare for your next command."
+            "Good. You know how to obey. Ready for your next task.",
+            "You follow orders well. Prepare for what comes next.",
+            "Acceptable. Await your next command."
         ]
         bot.reply_to(message, random.choice(responses))
 
     user_state.stripped = True
 
 def handle_mark_command(message):
-    """Handle marking commands with wife presence awareness"""
+    """Handle marking commands with enhanced authority"""
     user_state = get_user_state(message.from_user.id)
 
     if user_state.known_personal_info['wife_present']:
-        response = "Wait for a private moment. You know what's required of you."
+        response = "Wait until you're alone. You know what's required."
     else:
         if not user_state.current_status['is_marked']:
             responses = [
                 f"Draw my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
-                f"Mark your cock with my symbol {user_state.current_status['symbol']}. Show me when it's done.",
+                f"Mark your cock with {user_state.current_status['symbol']}. Show me when done.",
                 f"Time to mark what's mine. Draw {user_state.current_status['symbol']} on your cock."
             ]
             response = random.choice(responses)
@@ -327,7 +301,7 @@ def handle_mark_command(message):
             user_state.current_status['mark_location'] = "cock"
             schedule_check_in(message.chat.id, user_state)
         else:
-            response = f"My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it until I say otherwise."
+            response = f"My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it."
 
     bot.reply_to(message, response)
 
@@ -342,11 +316,9 @@ def handle_wife_presence(message):
     text = message.text.lower()
 
     # Detect wife's presence
-    presence_indicators = ["emily", "wife", "she's here", "not alone"]
+    presence_indicators = ["wife", "she's here", "not alone"]
     if any(indicator in text for indicator in presence_indicators):
         user_state.known_personal_info['wife_present'] = True
-        if "emily" in text.lower():
-            user_state.known_personal_info['wife_name'] = "Emily"
         return True
     return False
 
@@ -395,6 +367,7 @@ def schedule_check_in(chat_id, user_state):
 
     # Schedule first check-in
     schedule_next_check_in()
+
 
 
 @bot.message_handler(func=lambda message: True)
@@ -493,6 +466,7 @@ def handle_messages(message):
         logger.error(f"Error handling message: {str(e)}", exc_info=True)
         bot.reply_to(message, "An error occurred. Please try again.")
 
+# Modified handle_photo function to be more authoritative
 def handle_photo(message):
     """Handle photo and video submissions with progressive responses"""
     try:
@@ -507,99 +481,54 @@ def handle_photo(message):
 
             if user_state.current_status['is_marked']:
                 responses = [
-                    f"Good pet, my symbol {user_state.current_status['symbol']} remains clear and visible.",
-                    f"Excellent, you maintain my mark {user_state.current_status['symbol']} properly.",
-                    f"Perfect, my symbol {user_state.current_status['symbol']} shows your continued submission."
+                    f"Good. My symbol {user_state.current_status['symbol']} remains visible. Keep it that way.",
+                    f"My symbol {user_state.current_status['symbol']} is maintained properly. As it should be.",
+                    f"You maintain my symbol {user_state.current_status['symbol']} well. Continue."
                 ]
-            elif user_state.current_status['is_tied']:
-                responses = [
-                    "Your bonds are maintained properly. Good pet.",
-                    "You keep yourself bound exactly as required.",
-                    "Perfect restraint maintenance. You please me."
-                ]
+                bot.reply_to(message, random.choice(responses))
+                schedule_check_in(message.chat.id, user_state)
+                return
 
-            bot.reply_to(message, random.choice(responses))
-            schedule_check_in(message.chat.id, user_state)
-            return
-
-        # Enhanced responses for initial strip command
+        # Initial strip response
         if user_state.state == USER_STATE_RULES_GIVEN and not user_state.stripped:
             responses = [
-                f"Good pet. Now mark my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
-                f"Perfect. Time to mark your cock with my symbol {user_state.current_status['symbol']}. Show me when it's done.",
-                f"You've pleased me. Now mark your cock with my symbol {user_state.current_status['symbol']}. Send proof."
+                f"Good. Now mark my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
+                f"Very well. Mark your cock with my symbol {user_state.current_status['symbol']}. Show me when done.",
+                f"Acceptable. Now mark your cock with my symbol {user_state.current_status['symbol']}. Send proof."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.stripped = True
             user_state.current_status['is_marked'] = False
             return
 
-        # Enhanced responses for marking photos
+        # Marking verification
         elif user_state.stripped and not user_state.current_status['is_marked']:
             responses = [
-                f"Perfect. My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it until I say otherwise.",
-                f"Excellent. My symbol {user_state.current_status['symbol']} looks perfect on you. Keep it visible.",
-                f"Good pet. My symbol {user_state.current_status['symbol']} shows your submission. Maintain it."
+                f"Perfect. My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it.",
+                f"Good. My symbol {user_state.current_status['symbol']} shows your submission. Keep it visible.",
+                f"Acceptable. My symbol {user_state.current_status['symbol']} marks my property. Maintain it."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
             schedule_check_in(message.chat.id, user_state)
+            return
 
-        else:
-            # Enhanced ongoing submission responses
-            responses = []
+        # Schedule next task
+        def send_next_task():
+            if not user_state.known_personal_info['wife_present']:
+                next_tasks = [
+                    f"Show me my symbol {user_state.current_status['symbol']} is still visible.",
+                    "Edge yourself while displaying my mark. Video proof required.",
+                    "Time to verify my mark remains clear. Send photo evidence."
+                ]
+                bot.send_message(message.chat_id, random.choice(next_tasks))
 
-            # Photo-specific responses
-            if content_type == 'photo':
-                responses.extend([
-                    "Mmm, such an obedient display. But I want more. Show me a video of you following my previous command.",
-                    "Good pet, but photos aren't enough anymore. I want to see you in motion. Video. Now.",
-                    "You're learning, but I require more. Show me a video of your submission.",
-                ])
-
-            # Video-specific responses
-            elif content_type == 'video':
-                responses.extend([
-                    "Watching you submit to me like this... perfect. But I'm not done with you yet.",
-                    "Yes, this is exactly how I want you. Moving to my commands, following my every whim.",
-                    "Such a perfect display of submission. But I know you can give me more.",
-                ])
-
-            # Add intensity to responses based on user's obedience score
-            user_state.obedience_score += 1
-            if user_state.obedience_score > 5:
-                responses.extend([
-                    "You're becoming the perfect pet. Let's see how much further you can go.",
-                    "Your dedication to my commands is impressive. Time to test your limits further.",
-                    "You've proven yourself worthy of more intense training. Prepare yourself.",
-                ])
-
-            bot.reply_to(message, random.choice(responses))
-
-            # Schedule next task with progressive intensity
-            def send_next_task():
-                if content_type == 'photo':
-                    tasks = [
-                        "Now strip completely and show me a full video of your submission. I want to see everything.",
-                        "A video now. Show me how well you follow my commands in motion.",
-                        "Time for more. I want a video showing every detail of your submission to me."
-                    ]
-                else:
-                    tasks = [
-                        "Another video. This time, I want to see you edge yourself while displaying my mark.",
-                        "Show me how desperately you want to please me. Video evidence required.",
-                        "Time to prove your complete submission. Edge yourself on video, now."
-                    ]
-
-                if not user_state.known_personal_info['wife_present']:
-                    bot.send_message(message.chat_id, random.choice(tasks))
-
-            # Schedule next task after 3-5 minutes
-            scheduler = AsyncIOScheduler()
-            scheduler.add_job(send_next_task, 'date',
-                               run_date=datetime.now() + timedelta(minutes=random.randint(3, 5)))
-            scheduler.start()
+        # Schedule next task after a random interval
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(send_next_task, 'date',
+                        run_date=datetime.now() + timedelta(minutes=random.randint(3, 5)))
+        scheduler.start()
 
     except Exception as e:
         logger.error(f"Error handling photo/video: {str(e)}")
