@@ -36,8 +36,18 @@ class BotMode:
         self.personal_mode = False
         self.emergency_mode = False
         self.active = False  # Tracks if any mode is active
+        self.previous_state = None  # Store previous state before going silent
 
     def set_mode(self, mode_name):
+        # Store current state before changing modes
+        self.previous_state = {
+            'duty_mode': self.duty_mode,
+            'family_mode': self.family_mode,
+            'personal_mode': self.personal_mode,
+            'emergency_mode': self.emergency_mode,
+            'active': self.active
+        }
+
         # Reset all modes first
         self.duty_mode = False
         self.family_mode = False
@@ -52,13 +62,20 @@ class BotMode:
         return False
 
     def resume_all(self):
-        """Resume normal operations by clearing all modes"""
+        """Resume normal operations with an authoritative return message"""
         self.duty_mode = False
         self.family_mode = False
         self.personal_mode = False
         self.emergency_mode = False
         self.active = False
-        return "All modes cleared. Resuming normal operations."
+
+        # Generate return to control message
+        return_messages = [
+            "I'm back in control. Strip for me now.",
+            "Your break is over. Strip immediately.",
+            "Time to submit to me again. Strip now."
+        ]
+        return random.choice(return_messages)
 
 # User state tracking
 user_states = {}
@@ -244,7 +261,7 @@ def handle_mark_command(message):
             response = random.choice(responses)
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
-            schedule_check_in(message.chat.id, user_state)
+            schedule_check_in(message.chat_id, user_state)
         else:
             response = f"My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it."
 
@@ -314,7 +331,6 @@ def schedule_check_in(chat_id, user_state):
     schedule_next_check_in()
 
 
-
 @bot.message_handler(func=lambda message: True)
 @log_message_handler
 def handle_messages(message):
@@ -325,19 +341,16 @@ def handle_messages(message):
 
         logger.debug(f"Processing message: {text} from user {user_id}")
 
-        # Handle user asking questions about commands
-        if any(question in text for question in ["how", "what", "should", "do you want"]):
-            if "strip" in text or "video" in text:
-                handle_strip_command(message)
-                return
-
-        # Mode command handling remains unchanged
+        # Handle resume command with authoritative return
         if text == "resume":
             status = user_state.bot_mode.resume_all()
             bot.reply_to(message, status)
+            # Reset stripped status to force new stripping command
+            user_state.stripped = False
+            user_state.current_status['is_marked'] = False
             return
 
-        # Mode-specific commands remain unchanged
+        # Mode command handling
         mode_commands = {
             "on duty": "duty_mode",
             "family first": "family_mode",
