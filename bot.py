@@ -37,8 +37,34 @@ class BotMode:
         self.emergency_mode = False
         self.active = False  # Tracks if any mode is active
         self.previous_state = None  # Store previous state before going silent
+        self.family_mode_override_chance = 0.3  # 30% chance to override family mode
+        self.personal_time_approval_chance = 0.7  # 70% chance to approve personal time
+        self.last_override_time = None
+        self.override_active = False
 
-    def set_mode(self, mode_name):
+    def should_override_family_mode(self, user_state):
+        """Determine if we should override family mode based on conditions"""
+        if not self.family_mode:
+            return False
+
+        # Only override if user is marked or tied
+        if not (user_state.current_status['is_marked'] or user_state.current_status['is_tied']):
+            return False
+
+        # Check if enough time has passed since last override (at least 1 hour)
+        current_time = datetime.now()
+        if self.last_override_time and (current_time - self.last_override_time).total_seconds() < 3600:
+            return False
+
+        # Random chance to override
+        if random.random() <= self.family_mode_override_chance:
+            self.last_override_time = current_time
+            self.override_active = True
+            return True
+
+        return False
+
+    def set_mode(self, mode_name, user_state=None):
         # Store current state before changing modes
         self.previous_state = {
             'duty_mode': self.duty_mode,
@@ -54,19 +80,30 @@ class BotMode:
         self.personal_mode = False
         self.emergency_mode = False
 
+        # Handle personal time requests with chance-based approval
+        if mode_name == 'personal_mode':
+            if random.random() <= self.personal_time_approval_chance:
+                self.personal_mode = True
+                self.active = True
+                return "I'll allow you some personal time. Don't forget who owns you. Use 'resume' when you're done."
+            else:
+                return "Request denied. You haven't earned personal time yet. Continue serving me."
+
         # Set the requested mode
         if mode_name == 'duty_mode':
             self.duty_mode = True
             self.active = True
             return "Duty mode activated. I will remain silent. Use 'resume' to return to normal operation."
         elif mode_name == 'family_mode':
-            self.family_mode = True
-            self.active = True
-            return "Family mode activated. I will remain silent. Use 'resume' to return to normal operation."
-        elif mode_name == 'personal_mode':
-            self.personal_mode = True
-            self.active = True
-            return "Personal mode activated. I will remain silent. Use 'resume' to return to normal operation."
+            if user_state and (user_state.current_status['is_marked'] or user_state.current_status['is_tied']):
+                self.family_mode = True
+                self.active = True
+                schedule_family_mode_check_in(user_state)  # Schedule potential check-ins
+                return "Family mode activated. But remember, you're still mine. I may demand proof when you least expect it."
+            else:
+                self.family_mode = True
+                self.active = True
+                return "Family mode activated. I will remain silent. Use 'resume' to return to normal operation."
         elif mode_name == 'emergency_mode':
             self.emergency_mode = True
             self.active = True
@@ -80,20 +117,16 @@ class BotMode:
         self.personal_mode = False
         self.emergency_mode = False
         self.active = False
+        self.override_active = False
 
-        # Return control messages based on previous state
-        if self.previous_state:
-            dominant_returns = [
-                "I'm back in control. Strip for me now if you aren't already.",
-                "Your break is over. Show me your current state of undress.",
-                "Time to submit to me again. Strip if you haven't maintained it.",
-                "I've returned. Show me your submission state.",
-                "Break time is over. Strip if needed."
-            ]
-            return random.choice(dominant_returns)
-        else:
-            # Fallback if no previous state
-            return "I'm back in control. Strip for me now."
+        dominant_returns = [
+            "I'm back in control. Strip for me now if you aren't already.",
+            "Break time is over. Strip and show me your current state.",
+            "Your free time is done. Show me your submission state immediately.",
+            "I've returned. Strip now and prove your obedience.",
+            "Time to submit again. Strip and show me your current state."
+        ]
+        return random.choice(dominant_returns)
 
 # User state tracking
 user_states = {}
@@ -134,6 +167,7 @@ class UserState:
             'symbol': '△'  # Default symbol is a triangle
         }
         self.bot_mode = BotMode()
+        self.chat_id = None #Added to store chat id
 
 def generate_punishment_response(user_state):
     """Generate realistic punishment responses"""
@@ -169,19 +203,6 @@ def handle_disobedience(message):
 
     return punishment
 
-# Enhanced introduction messages
-introduction_sequence = [
-    "Welcome, pet. I am your Mistress now.",
-    "Your journey into submission begins here.",
-    "Before we continue, you need to understand my rules:",
-    "Rule 1: Address me as Mistress at all times.",
-    "Rule 2: Obey my commands immediately and without question.",
-    "Rule 3: Your body belongs to me now.",
-    "Rule 4: You will provide proof of your submission as I demand.",
-    "Rule 5: Disobedience will result in punishment.",
-    "Do you understand and accept these rules? Answer 'Yes, Mistress' to submit to me."
-]
-
 # Command patterns
 command_patterns = {
     "strip": ["strip", "undress", "naked", "clothes off"],
@@ -200,49 +221,6 @@ def update_user_state(user_id, new_state):
     if user_id in user_states:
         user_states[user_id].state = new_state
         user_states[user_id].last_interaction = datetime.now()
-
-def handle_new_user(message):
-    """Handle interaction with new users"""
-    try:
-        user_id = message.from_user.id
-        chat_id = message.chat.id
-
-        # Send introduction with delays for impact
-        bot.reply_to(message, introduction_sequence[0])
-        time.sleep(2)
-
-        # Send subsequent messages with error handling
-        for msg in introduction_sequence[1:3]:
-            try:
-                bot.send_message(chat_id, msg)
-                time.sleep(2)
-            except Exception as e:
-                logger.error(f"Error sending introduction message: {str(e)}")
-                bot.reply_to(message, "There was an issue with the introduction. Please try again by saying 'hello'.")
-                return
-
-        # Send rules with shorter delays
-        for rule in introduction_sequence[3:8]:
-            try:
-                bot.send_message(chat_id, rule)
-                time.sleep(1)
-            except Exception as e:
-                logger.error(f"Error sending rule message: {str(e)}")
-                bot.reply_to(message, "There was an issue with the rules. Please try again by saying 'hello'.")
-                return
-
-        # Final demand for submission
-        try:
-            bot.send_message(chat_id, introduction_sequence[8])
-            update_user_state(user_id, USER_STATE_INTRODUCED)
-        except Exception as e:
-            logger.error(f"Error sending final introduction message: {str(e)}")
-            bot.reply_to(message, "There was an issue completing the introduction. Please try again by saying 'hello'.")
-            return
-
-    except Exception as e:
-        logger.error(f"Error in handle_new_user: {str(e)}")
-        bot.reply_to(message, "An error occurred during introduction. Please try again by saying 'hello'.")
 
 def handle_strip_command(message):
     """Handle strip commands with direct authority"""
@@ -352,6 +330,7 @@ def handle_messages(message):
     try:
         user_id = message.from_user.id
         user_state = get_user_state(user_id)
+        user_state.chat_id = message.chat.id  # Store chat_id for notifications
         text = message.text.lower()
 
         logger.debug(f"Processing message: {text} from user {user_id}")
@@ -366,7 +345,7 @@ def handle_messages(message):
                 ]
                 bot.reply_to(message, random.choice(stern_responses))
                 return
-            elif user_state.last_command_type == "mark_photo":
+            elif user_state.last_command_type == "mark_photo" or user_state.last_command_type == "mark_check":
                 stern_responses = [
                     f"Show me my symbol {user_state.current_status['symbol']} marked on your cock. Now.",
                     "I ordered you to mark yourself and send proof. Do it.",
@@ -380,30 +359,43 @@ def handle_messages(message):
             response = user_state.bot_mode.resume_all()
             if response:
                 bot.reply_to(message, response)
-                # Don't reset stripped status, only mark status needs verification
+                # Reset for new session verification
+                user_state.stripped = False
                 user_state.current_status['is_marked'] = False
                 user_state.expecting_media = True
-                user_state.last_command_type = "photo"  # Expect photo to verify state
+                user_state.last_command_type = "strip_video"
             return
 
-        # Mode command handling with exact matches
+        # Personal time request with random approval
+        if text == "me time":
+            response = user_state.bot_mode.set_mode("personal_mode")
+            if response:
+                bot.reply_to(message, response)
+            return
+
+        # Family mode with potential overrides
+        if text == "family first":
+            response = user_state.bot_mode.set_mode("family_mode", user_state)
+            if response:
+                bot.reply_to(message, response)
+            return
+
+        # Other mode commands
         mode_commands = {
             "on duty": "duty_mode",
-            "family first": "family_mode",
-            "me time": "personal_mode",
             "emergency": "emergency_mode"
         }
 
         # Check for mode activation commands
         for cmd, mode in mode_commands.items():
-            if text == cmd:  # Changed to exact match
+            if text == cmd:
                 response = user_state.bot_mode.set_mode(mode)
                 if response:
                     bot.reply_to(message, response)
                 return
 
-        # If any mode is active, don't process further messages
-        if user_state.bot_mode.active:
+        # If any mode is active and no override, don't process further messages
+        if user_state.bot_mode.active and not user_state.bot_mode.override_active:
             return
 
         # Check for wife's presence first
@@ -411,26 +403,6 @@ def handle_messages(message):
             bot.reply_to(message, generate_discreet_response(user_state))
             return
 
-        # Handle new users
-        if user_state.state == USER_STATE_NEW:
-            handle_new_user(message)
-            return
-
-        # Handle user responses based on state
-        if user_state.state == USER_STATE_INTRODUCED:
-            if check_command_patterns(text, command_patterns["yes_mistress"]):
-                responses = [
-                    "Good pet. You understand your place. Now strip for me and send video proof.",
-                    "Perfect. Your submission begins now. Strip for me immediately. Send video proof.",
-                    "Excellent. Your training starts now. Strip and send video proof."
-                ]
-                bot.reply_to(message, random.choice(responses))
-                update_user_state(user_id, USER_STATE_RULES_GIVEN)
-                return
-            else:
-                punishment = handle_disobedience(message)
-                bot.reply_to(message, "You will address me as Mistress. Try again.")
-                return
 
         # Handle strip commands
         if check_command_patterns(text, command_patterns["strip"]):
@@ -471,12 +443,25 @@ def handle_photo(message):
         user_state.expecting_media = False
         user_state.last_command_type = None
 
-        # Handle state verification after resume
-        if not user_state.current_status['is_marked'] and user_state.stripped:
+        # Verify stripped state first
+        if not user_state.stripped:
             responses = [
-                f"Good. Now reapply my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
-                f"Perfect. Mark your cock again with my symbol {user_state.current_status['symbol']}. Show me when done.",
-                f"Acceptable. Mark yourself with my symbol {user_state.current_status['symbol']} again. Send proof."
+                f"Good. Now show me my symbol {user_state.current_status['symbol']} is still marked on your cock.",
+                f"Perfect. Let me see if my symbol {user_state.current_status['symbol']} is still visible.",
+                f"Acceptable. Show me my symbol {user_state.current_status['symbol']} on your cock."
+            ]
+            bot.reply_to(message, random.choice(responses))
+            user_state.stripped = True
+            user_state.expecting_media = True
+            user_state.last_command_type = "mark_check"
+            return
+
+        # Check marking visibility
+        if user_state.last_command_type == "mark_check":
+            responses = [
+                f"Good. My symbol {user_state.current_status['symbol']} needs refreshing. Mark it again clearly.",
+                f"The mark has faded. Reapply my symbol {user_state.current_status['symbol']} now.",
+                f"Acceptable. Time to renew my symbol {user_state.current_status['symbol']}. Do it now."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.expecting_media = True
@@ -590,6 +575,33 @@ def send_progressive_task(chat_id, user_state):
 @bot.message_handler(content_types=['photo', 'video'])
 def handle_media(message):
     handle_photo(message)
+
+def schedule_family_mode_check_in(user_state):
+    """Schedule potential check-ins during family mode"""
+    def send_family_override_message():
+        if user_state.bot_mode.should_override_family_mode(user_state):
+            demands = [
+                f"Sneak away and show me my symbol {user_state.current_status['symbol']} is still visible. Now.",
+                f"Find a private moment. Show me my mark {user_state.current_status['symbol']} remains. Immediately.",
+                f"I don't care if you're busy. Show me my symbol {user_state.current_status['symbol']} now."
+            ]
+            try:
+                bot.send_message(user_state.chat_id, random.choice(demands))
+                user_state.expecting_media = True
+                user_state.last_command_type = "mark_check"
+                # Schedule next potential check-in
+                schedule_next_check()
+            except Exception as e:
+                logger.error(f"Error sending family mode override: {str(e)}")
+
+    def schedule_next_check():
+        # Schedule next check exactly 1 hour from now
+        scheduler.add_job(send_family_override_message, 'date',
+                        run_date=datetime.now() + timedelta(hours=1))
+
+    # Schedule first check
+    schedule_next_check()
+
 
 # Global scheduler initialization at the module level
 scheduler = BackgroundScheduler()
