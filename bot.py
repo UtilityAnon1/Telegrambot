@@ -37,6 +37,8 @@ class BotMode:
         self.emergency_mode = False
         self.active = False  # Tracks if any mode is active
         self.previous_state = None  # Store previous state before going silent
+        self.current_status = {} # Added to store current status
+
 
     def set_mode(self, mode_name):
         # Store current state before changing modes
@@ -45,7 +47,8 @@ class BotMode:
             'family_mode': self.family_mode,
             'personal_mode': self.personal_mode,
             'emergency_mode': self.emergency_mode,
-            'active': self.active
+            'active': self.active,
+            'last_command_sequence': self.current_status if hasattr(self, 'current_status') else None
         }
 
         # Reset all modes first
@@ -62,20 +65,21 @@ class BotMode:
         return False
 
     def resume_all(self):
-        """Resume normal operations with an authoritative return message"""
+        """Resume normal operations with assertive control"""
         self.duty_mode = False
         self.family_mode = False
         self.personal_mode = False
         self.emergency_mode = False
         self.active = False
 
-        # Generate return to control message
-        return_messages = [
+        dominant_returns = [
             "I'm back in control. Strip for me now.",
             "Your break is over. Strip immediately.",
-            "Time to submit to me again. Strip now."
+            "Time to submit to me again. Strip now.",
+            "I've returned. Show me your submission. Strip.",
+            "Break time is over. Strip for me now."
         ]
-        return random.choice(return_messages)
+        return random.choice(dominant_returns)
 
 # User state tracking
 user_states = {}
@@ -345,7 +349,7 @@ def handle_messages(message):
         if text == "resume":
             status = user_state.bot_mode.resume_all()
             bot.reply_to(message, status)
-            # Reset stripped status to force new stripping command
+            # Reset status to force new submission
             user_state.stripped = False
             user_state.current_status['is_marked'] = False
             return
