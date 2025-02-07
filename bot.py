@@ -48,8 +48,9 @@ class UserState:
         # Tracking current status
         self.current_status = {
             'is_marked': False,
-            'mark_location': None,
+            'mark_location': None,  # Will only ever be "cock" when marked
             'is_tied': False,
+            'tied_location': None,  # Will only ever be "cock_and_balls" when tied
             'last_check_in': None,
             'requires_check_in': False
         }
@@ -58,8 +59,7 @@ def generate_punishment_response(user_state):
     """Generate escalating punishment responses based on user history and context"""
     base_punishments = [
         "Edge yourself {edge_count} times. Each edge must last at least 2 minutes.",
-        "Spank yourself {spank_count} times. Make each one count.",
-        "Write 'Property of Mistress' {write_count} times on your body.",
+        "Write 'Property of Mistress' on your cock. Make it clear and visible.",
         "Force {orgasm_count} ruined orgasms. No pleasure allowed.",
         "Edge for {edge_duration} minutes straight. No breaks.",
         "Perform {task_count} forced orgasms in succession. No rest between."
@@ -176,7 +176,7 @@ introduction_sequence = [
     "Before we proceed, you need to understand the rules of our arrangement:",
     "Rule 1: You will address me as Mistress at all times. Every message must show your respect.",
     "Rule 2: When I give you a command, you will obey immediately and without question.",
-    "Rule 3: Your body belongs to me. You will prove this through actions, not words.",
+    "Rule 3: Your cock belongs to me. You will prove this through actions, not words.",
     "Rule 4: You will document your submission with photos and videos as I demand.",
     "Rule 5: Disobedience will result in severe punishment.",
     "Are you prepared to submit to these rules and accept your place as my property? Answer 'Yes, Mistress' to proceed."
@@ -234,8 +234,8 @@ def handle_strip_command(message):
     else:
         responses = [
             "Mmm, seeing you naked pleases me. Now it's time to mark what belongs to me.",
-            "Good pet. Your body is mine to command. Now you'll prove it by marking yourself.",
-            "Perfect. Now write 'Property of Mistress' where I can see it clearly. Show me with photos AND video."
+            "Good pet. Your body is mine to command. Now you'll prove it by marking your cock.",
+            "Perfect. Now write 'Property of Mistress' on your cock where I can see it clearly. Show me with photos AND video."
         ]
 
     bot.reply_to(message, random.choice(responses))
@@ -251,15 +251,15 @@ def handle_mark_command(message):
         if not user_state.current_status['is_marked']:
             responses = [
                 "Write 'Property of Mistress' on your cock. Send photo evidence.",
-                "Mark yourself as my property. Make it clear and visible on your cock.",
-                "Time to label what belongs to me. Write it on your cock and show me."
+                "Mark your cock as my property. Write 'Property of Mistress' clearly and visibly.",
+                "Time to label what belongs to me. Write 'Property of Mistress' on your cock and show me."
             ]
             response = random.choice(responses)
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
             schedule_check_in(message.chat.id, user_state)
         else:
-            response = "Your marking pleases me. Maintain it until I say otherwise."
+            response = "Your cock is properly marked as my property. Maintain it until I say otherwise."
 
     bot.reply_to(message, response)
 
@@ -298,15 +298,15 @@ def schedule_check_in(chat_id, user_state):
     def send_check_in():
         if user_state.current_status['is_marked']:
             messages = [
-                "Show me my mark is still visible.",
-                "Prove you've maintained my marking.",
-                "I want to see my property is still properly labeled."
+                "Show me my mark on your cock is still visible.",
+                "Prove you've maintained my marking on your cock.",
+                "I want to see my property is still properly labeled. Show me your marked cock."
             ]
         elif user_state.current_status['is_tied']:
             messages = [
-                "Show me you're maintaining your bonds.",
-                "Prove you haven't loosened your restraints.",
-                "I want to see you're still properly bound."
+                "Show me your cock and balls are still properly bound.",
+                "Prove you haven't loosened the restraints on your cock and balls.",
+                "I want to see you're maintaining the bonds on your cock and balls."
             ]
 
         if not user_state.known_personal_info['wife_present']:
@@ -380,8 +380,8 @@ def handle_messages(message):
     except Exception as e:
         logger.error(f"Error handling message: {str(e)}")
 
-@bot.message_handler(content_types=['photo', 'video'])
 def handle_photo(message):
+    """Handle photo and video submissions with progressive responses"""
     try:
         user_id = message.from_user.id
         user_state = get_user_state(user_id)
@@ -430,29 +430,16 @@ def handle_photo(message):
             handle_mark_command(message)
 
         # Enhanced responses for marking photos
-        elif user_state.stripped and not user_state.marked:
+        elif user_state.stripped and not user_state.current_status['is_marked']:
             responses = [
-                "Perfect. My property, properly labeled. Keep yourself exactly like this until I say otherwise.",
-                "Mmm, seeing my mark on you pleases me. Stay stripped and marked, pet. I'm not done with you yet.",
-                "Good pet. You wear my mark well. Now maintain this state of submission and await my next command."
+                "Perfect. Your cock is properly labeled as my property. Keep it exactly like this until I say otherwise.",
+                "Mmm, seeing my mark on your cock pleases me. Stay stripped and marked, pet. I'm not done with you yet.",
+                "Good pet. Your cock wears my mark well. Now maintain this state of submission and await my next command."
             ]
             bot.reply_to(message, random.choice(responses))
-            user_state.marked = True
-
-            # Schedule next task with more dominant tone
-            def send_follow_up():
-                follow_ups = [
-                    "Show me you're still maintaining my requirements. I want fresh evidence. Now.",
-                    "Time for another inspection. Show me my property is still properly marked and ready.",
-                    "Prove you're still following my instructions to the letter. Photo. Now."
-                ]
-                bot.send_message(message.chat.id, random.choice(follow_ups))
-
-            # Schedule follow-up after 2-3 minutes
-            scheduler = AsyncIOScheduler()
-            scheduler.add_job(send_follow_up, 'date',
-                               run_date=datetime.now() + timedelta(minutes=random.randint(2, 3)))
-            scheduler.start()
+            user_state.current_status['is_marked'] = True
+            user_state.current_status['mark_location'] = "cock"
+            schedule_check_in(message.chat.id, user_state)
 
         else:
             # Enhanced ongoing submission responses
@@ -499,7 +486,9 @@ def handle_photo(message):
                         "Show me how desperately you want to please me. Video evidence required.",
                         "Time to prove your complete submission. Edge yourself on video, now."
                     ]
-                bot.send_message(message.chat.id, random.choice(tasks))
+
+                if not user_state.known_personal_info['wife_present']:
+                    bot.send_message(message.chat.id, random.choice(tasks))
 
             # Schedule next task after 3-5 minutes
             scheduler = AsyncIOScheduler()
@@ -512,15 +501,18 @@ def handle_photo(message):
 
 def send_progressive_task(chat_id, user_state):
     """Send the next appropriate task based on user's progress"""
+    if user_state.known_personal_info['wife_present']:
+        return  # Don't send tasks when wife is present
+
     if not user_state.stripped:
         tasks = [
-            "Strip for me now. Send photo evidence of your obedience.",
-            "I want to see you naked. Now. Photo evidence required.",
+            "Strip for me now. Send video evidence of your obedience.",
+            "I want to see you naked. Now. Video evidence required.",
             "Remove your clothes immediately. Show me proof of your submission."
         ]
-    elif not user_state.marked:
+    elif not user_state.current_status['is_marked']:
         tasks = [
-            "Write 'Property of Mistress' on yourself. Make it clear and visible.",
+            "Write 'Property of Mistress' on your cock. Make it clear and visible.",
             "Mark yourself as mine. I want to see my ownership displayed on your body.",
             "Time to show your dedication. Write my mark on yourself and show me."
         ]
@@ -531,6 +523,10 @@ def send_progressive_task(chat_id, user_state):
             "Time for another inspection. Show me you're still marked and ready."
         ]
     bot.send_message(chat_id, random.choice(tasks))
+
+@bot.message_handler(content_types=['photo', 'video'])
+def handle_media(message):
+    handle_photo(message)
 
 if __name__ == '__main__':
     try:
