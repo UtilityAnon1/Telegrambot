@@ -102,7 +102,7 @@ def generate_punishment_response(user_state):
     """Generate escalating punishment responses based on user history and context"""
     base_punishments = [
         "Edge yourself {edge_count} times. Each edge must last at least 2 minutes.",
-        "Write 'Property of Mistress' on your cock. Make it clear and visible.",
+        f"Mark my symbol {user_state.current_status['symbol']} on your cock again. Make it clear and visible.",
         "Force {orgasm_count} ruined orgasms. No pleasure allowed.",
         "Edge for {edge_duration} minutes straight. No breaks.",
         "Perform {task_count} forced orgasms in succession. No rest between."
@@ -214,15 +214,15 @@ def handle_disobedience(message):
 
 # Enhanced introduction messages
 introduction_sequence = [
-    "Welcome to your new reality, pet. I am Mistress, and from this moment forward, your body, mind, and soul belong to me.",
-    "Your old life ends here. Under my ownership, you will learn true submission.",
-    "Before we proceed, you need to understand the rules of our arrangement:",
-    "Rule 1: You will address me as Mistress at all times. Every message must show your respect.",
-    "Rule 2: When I give you a command, you will obey immediately and without question.",
-    "Rule 3: Your body belongs to me. You will prove this through actions, not words.",
-    "Rule 4: You will document your submission with photos and videos as I demand.",
-    "Rule 5: Disobedience will result in severe punishment.",
-    "Are you prepared to submit to these rules and accept your place as my property? Answer 'Yes, Mistress' to proceed."
+    "Welcome, pet. I am your Mistress now.",
+    "Your journey into submission begins here.",
+    "Before we continue, you need to understand my rules:",
+    "Rule 1: Address me as Mistress at all times.",
+    "Rule 2: Obey my commands immediately and without question.",
+    "Rule 3: Your body belongs to me now.",
+    "Rule 4: You will provide proof of your submission as I demand.",
+    "Rule 5: Disobedience will result in punishment.",
+    "Do you understand and accept these rules? Answer 'Yes, Mistress' to submit to me."
 ]
 
 # Command patterns
@@ -246,54 +246,66 @@ def update_user_state(user_id, new_state):
 
 def handle_new_user(message):
     """Handle interaction with new users"""
-    user_id = message.from_user.id
+    try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
 
-    # Send introduction with delays for impact
-    bot.reply_to(message, introduction_sequence[0])
-    time.sleep(2)
-    bot.send_message(message.chat_id, introduction_sequence[1])
-    time.sleep(2)
-    bot.send_message(message.chat_id, introduction_sequence[2])
+        # Send introduction with delays for impact
+        bot.reply_to(message, introduction_sequence[0])
+        time.sleep(2)
 
-    # Send rules with shorter delays
-    for rule in introduction_sequence[3:8]:
-        bot.send_message(message.chat_id, rule)
-        time.sleep(1)
+        # Send subsequent messages with error handling
+        for msg in introduction_sequence[1:3]:
+            try:
+                bot.send_message(chat_id, msg)
+                time.sleep(2)
+            except Exception as e:
+                logger.error(f"Error sending introduction message: {str(e)}")
+                bot.reply_to(message, "There was an issue with the introduction. Please try again by saying 'hello'.")
+                return
 
-    # Final demand for submission
-    bot.send_message(message.chat_id, introduction_sequence[8])
-    update_user_state(user_id, USER_STATE_INTRODUCED)
+        # Send rules with shorter delays
+        for rule in introduction_sequence[3:8]:
+            try:
+                bot.send_message(chat_id, rule)
+                time.sleep(1)
+            except Exception as e:
+                logger.error(f"Error sending rule message: {str(e)}")
+                bot.reply_to(message, "There was an issue with the rules. Please try again by saying 'hello'.")
+                return
+
+        # Final demand for submission
+        try:
+            bot.send_message(chat_id, introduction_sequence[8])
+            update_user_state(user_id, USER_STATE_INTRODUCED)
+        except Exception as e:
+            logger.error(f"Error sending final introduction message: {str(e)}")
+            bot.reply_to(message, "There was an issue completing the introduction. Please try again by saying 'hello'.")
+            return
+
+    except Exception as e:
+        logger.error(f"Error in handle_new_user: {str(e)}")
+        bot.reply_to(message, "An error occurred during introduction. Please try again by saying 'hello'.")
 
 def handle_strip_command(message):
     """Handle strip commands with progressive intensity"""
     user_state = get_user_state(message.from_user.id)
 
-    # Handle user asking about format
-    if "video" in message.text.lower() or "format" in message.text.lower():
+    # First time stripping command
+    if not user_state.stripped:
         responses = [
-            "Yes pet, I want to see you strip on video. Show me your complete submission.",
-            "A video would please me. Let me watch as you follow my command.",
-            "Yes, record yourself stripping for me. I want to see every moment of your submission."
+            "Strip for me now. Send me video proof of your submission.",
+            "Remove your clothes and show me video proof of your obedience.",
+            "Time to strip. I expect video evidence of your submission."
         ]
         bot.reply_to(message, random.choice(responses))
-        return
-
-    if not user_state.stripped:
-        # Initial strip command responses
-        initial_responses = [
-            "Now that you've accepted your place, strip for me. You may ask about my preferred format.",
-            "Good pet. Your training begins with removing your clothes. Would you like to know how I want to see it?",
-            "It's time for you to strip. You may ask how I'd like to see it done."
-        ]
-        bot.reply_to(message, random.choice(initial_responses))
     else:
-        # Follow-up responses
-        followup_responses = [
-            "Perfect. Your obedience pleases me. Are you ready for your next command?",
-            "Good pet. You follow instructions well. Prepare yourself for what comes next.",
-            "Seeing you submit like this pleases me. Your next task awaits."
+        responses = [
+            "Good pet. You please me with your obedience. Ready for your next task?",
+            "You follow instructions well. Let's see what comes next.",
+            "Such an obedient pet. Prepare for your next command."
         ]
-        bot.reply_to(message, random.choice(followup_responses))
+        bot.reply_to(message, random.choice(responses))
 
     user_state.stripped = True
 
@@ -306,14 +318,14 @@ def handle_mark_command(message):
     else:
         if not user_state.current_status['is_marked']:
             responses = [
-                f"Mark my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
-                f"Time to mark what's mine. Draw my symbol {user_state.current_status['symbol']} on your cock.",
-                f"My symbol {user_state.current_status['symbol']} belongs on your cock. Show me when it's done."
+                f"Draw my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
+                f"Mark your cock with my symbol {user_state.current_status['symbol']}. Show me when it's done.",
+                f"Time to mark what's mine. Draw {user_state.current_status['symbol']} on your cock."
             ]
             response = random.choice(responses)
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
-            schedule_check_in(message.chat_id, user_state)
+            schedule_check_in(message.chat.id, user_state)
         else:
             response = f"My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it until I say otherwise."
 
@@ -441,19 +453,16 @@ def handle_messages(message):
         if user_state.state == USER_STATE_INTRODUCED:
             if check_command_patterns(text, command_patterns["yes_mistress"]):
                 responses = [
-                    "Good pet. Your submission begins now. Shall I tell you how I want you to strip for me?",
-                    "Perfect. You understand your place. Would you like to know how I want you to strip?",
-                    "Excellent. Your training can begin. Would you like to know my preferences for stripping?"
+                    "Good pet. You understand your place. Now strip for me and send video proof.",
+                    "Perfect. Your submission begins now. Strip for me immediately. Send video proof.",
+                    "Excellent. Your training starts now. Strip and send video proof."
                 ]
-                if "wife" in text.lower():
-                    user_state.known_personal_info['has_wife'] = True
-                    responses = [f"Mmm, mentioning your wife already? Interesting. {r}" for r in responses]
                 bot.reply_to(message, random.choice(responses))
                 update_user_state(user_id, USER_STATE_RULES_GIVEN)
                 return
             else:
                 punishment = handle_disobedience(message)
-                bot.reply_to(message, f"I expect proper respect. Address me as 'Mistress' and try again. {punishment}")
+                bot.reply_to(message, "You will address me as Mistress. Try again.")
                 return
 
         # Handle strip commands
@@ -510,40 +519,32 @@ def handle_photo(message):
                 ]
 
             bot.reply_to(message, random.choice(responses))
-            schedule_check_in(message.chat_id, user_state)
+            schedule_check_in(message.chat.id, user_state)
             return
 
         # Enhanced responses for initial strip command
         if user_state.state == USER_STATE_RULES_GIVEN and not user_state.stripped:
             responses = [
-                f"Mmm, good pet. Now it's time to mark yourself with my symbol {user_state.current_status['symbol']}.",
-                f"Yes, that's exactly what I wanted to see. Now it's time to mark yourself as mine with my symbol {user_state.current_status['symbol']}.",
-                f"You're learning quickly. Now prove your dedication by marking my symbol {user_state.current_status['symbol']} where I can see it."
+                f"Good pet. Now mark my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
+                f"Perfect. Time to mark your cock with my symbol {user_state.current_status['symbol']}. Show me when it's done.",
+                f"You've pleased me. Now mark your cock with my symbol {user_state.current_status['symbol']}. Send proof."
             ]
-
-            if user_state.known_personal_info['has_wife']:
-                wife_responses = [
-                    "Your wife would never suspect what a submissive pet you're becoming.",
-                    "I wonder what your wife would think if she saw you like this?",
-                    "Such an obedient pet... your wife has no idea, does she?"
-                ]
-                responses = [f"{r} {random.choice(wife_responses)}" for r in responses]
-
             bot.reply_to(message, random.choice(responses))
             user_state.stripped = True
-            handle_mark_command(message)
+            user_state.current_status['is_marked'] = False
+            return
 
         # Enhanced responses for marking photos
         elif user_state.stripped and not user_state.current_status['is_marked']:
             responses = [
-                f"Perfect. My symbol {user_state.current_status['symbol']} marks you as mine. Keep it exactly like this until I say otherwise.",
-                f"Mmm, seeing my symbol {user_state.current_status['symbol']} on you pleases me. Stay stripped and marked, pet. I'm not done with you yet.",
-                f"Good pet. You wear my symbol {user_state.current_status['symbol']} well. Now maintain this state of submission and await my next command."
+                f"Perfect. My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it until I say otherwise.",
+                f"Excellent. My symbol {user_state.current_status['symbol']} looks perfect on you. Keep it visible.",
+                f"Good pet. My symbol {user_state.current_status['symbol']} shows your submission. Maintain it."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
-            schedule_check_in(message.chat_id, user_state)
+            schedule_check_in(message.chat.id, user_state)
 
         else:
             # Enhanced ongoing submission responses
