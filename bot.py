@@ -251,37 +251,50 @@ def handle_new_user(message):
     # Send introduction with delays for impact
     bot.reply_to(message, introduction_sequence[0])
     time.sleep(2)
-    bot.send_message(message.chat.id, introduction_sequence[1])
+    bot.send_message(message.chat_id, introduction_sequence[1])
     time.sleep(2)
-    bot.send_message(message.chat.id, introduction_sequence[2])
+    bot.send_message(message.chat_id, introduction_sequence[2])
 
     # Send rules with shorter delays
     for rule in introduction_sequence[3:8]:
-        bot.send_message(message.chat.id, rule)
+        bot.send_message(message.chat_id, rule)
         time.sleep(1)
 
     # Final demand for submission
-    bot.send_message(message.chat.id, introduction_sequence[8])
+    bot.send_message(message.chat_id, introduction_sequence[8])
     update_user_state(user_id, USER_STATE_INTRODUCED)
 
 def handle_strip_command(message):
     """Handle strip commands with progressive intensity"""
     user_state = get_user_state(message.from_user.id)
 
-    if not user_state.stripped:
+    # Handle user asking about format
+    if "video" in message.text.lower() or "format" in message.text.lower():
         responses = [
-            "Strip for me. Now. Send video evidence of your complete submission to my command.",
-            "Remove your clothes immediately. I want to see you following my orders in real time.",
-            "Time to prove your submission. Strip slowly on video, showing me your complete obedience."
+            "Yes pet, I want to see you strip on video. Show me your complete submission.",
+            "A video would please me. Let me watch as you follow my command.",
+            "Yes, record yourself stripping for me. I want to see every moment of your submission."
         ]
-    else:
-        responses = [
-            "Mmm, seeing you naked pleases me. Now it's time to mark what belongs to me.",
-            "Good pet. Your body is mine to command. Now you'll prove it by marking yourself.",
-            "Perfect. Now write 'Property of Mistress' where I can see it clearly. Show me with photos AND video."
-        ]
+        bot.reply_to(message, random.choice(responses))
+        return
 
-    bot.reply_to(message, random.choice(responses))
+    if not user_state.stripped:
+        # Initial strip command responses
+        initial_responses = [
+            "Now that you've accepted your place, strip for me. You may ask about my preferred format.",
+            "Good pet. Your training begins with removing your clothes. Would you like to know how I want to see it?",
+            "It's time for you to strip. You may ask how I'd like to see it done."
+        ]
+        bot.reply_to(message, random.choice(initial_responses))
+    else:
+        # Follow-up responses
+        followup_responses = [
+            "Perfect. Your obedience pleases me. Are you ready for your next command?",
+            "Good pet. You follow instructions well. Prepare yourself for what comes next.",
+            "Seeing you submit like this pleases me. Your next task awaits."
+        ]
+        bot.reply_to(message, random.choice(followup_responses))
+
     user_state.stripped = True
 
 def handle_mark_command(message):
@@ -300,7 +313,7 @@ def handle_mark_command(message):
             response = random.choice(responses)
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
-            schedule_check_in(message.chat.id, user_state)
+            schedule_check_in(message.chat_id, user_state)
         else:
             response = f"My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it until I say otherwise."
 
@@ -382,13 +395,19 @@ def handle_messages(message):
 
         logger.debug(f"Processing message: {text} from user {user_id}")
 
-        # Mode command handling
+        # Handle user asking questions about commands
+        if any(question in text for question in ["how", "what", "should", "do you want"]):
+            if "strip" in text or "video" in text:
+                handle_strip_command(message)
+                return
+
+        # Mode command handling remains unchanged
         if text == "resume":
             status = user_state.bot_mode.resume_all()
             bot.reply_to(message, status)
             return
 
-        # Mode-specific commands
+        # Mode-specific commands remain unchanged
         mode_commands = {
             "on duty": "duty_mode",
             "family first": "family_mode",
@@ -421,11 +440,15 @@ def handle_messages(message):
         # Handle user responses based on state
         if user_state.state == USER_STATE_INTRODUCED:
             if check_command_patterns(text, command_patterns["yes_mistress"]):
-                response = "Good pet. Your training begins now. Strip for me."
+                responses = [
+                    "Good pet. Your submission begins now. Shall I tell you how I want you to strip for me?",
+                    "Perfect. You understand your place. Would you like to know how I want you to strip?",
+                    "Excellent. Your training can begin. Would you like to know my preferences for stripping?"
+                ]
                 if "wife" in text.lower():
                     user_state.known_personal_info['has_wife'] = True
-                    response = "Mmm, mentioning your wife already? Interesting. " + response
-                bot.reply_to(message, response)
+                    responses = [f"Mmm, mentioning your wife already? Interesting. {r}" for r in responses]
+                bot.reply_to(message, random.choice(responses))
                 update_user_state(user_id, USER_STATE_RULES_GIVEN)
                 return
             else:
@@ -487,7 +510,7 @@ def handle_photo(message):
                 ]
 
             bot.reply_to(message, random.choice(responses))
-            schedule_check_in(message.chat.id, user_state)
+            schedule_check_in(message.chat_id, user_state)
             return
 
         # Enhanced responses for initial strip command
@@ -520,7 +543,7 @@ def handle_photo(message):
             bot.reply_to(message, random.choice(responses))
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
-            schedule_check_in(message.chat.id, user_state)
+            schedule_check_in(message.chat_id, user_state)
 
         else:
             # Enhanced ongoing submission responses
@@ -569,7 +592,7 @@ def handle_photo(message):
                     ]
 
                 if not user_state.known_personal_info['wife_present']:
-                    bot.send_message(message.chat.id, random.choice(tasks))
+                    bot.send_message(message.chat_id, random.choice(tasks))
 
             # Schedule next task after 3-5 minutes
             scheduler = AsyncIOScheduler()
