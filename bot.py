@@ -446,15 +446,15 @@ def handle_photo(message):
                 f"You maintain my mark well. Continue."
             ]
             bot.reply_to(message, random.choice(responses))
-            schedule_check_in(message.chat_id, user_state)
+            schedule_check_in(message.chat.id, user_state)
             return
 
         # Initial strip response
         if user_state.state == USER_STATE_RULES_GIVEN and not user_state.stripped:
             responses = [
-                f"Now mark my symbol {user_state.current_status['symbol']} on your cock.",
-                f"Time to mark your cock with my symbol {user_state.current_status['symbol']}.",
-                f"Draw {user_state.current_status['symbol']} on your cock. Send proof."
+                f"Now mark my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
+                f"Mark your cock with my symbol {user_state.current_status['symbol']}. Show me when done.",
+                f"Time to mark your cock with my symbol {user_state.current_status['symbol']}. Send proof."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.stripped = True
@@ -465,33 +465,38 @@ def handle_photo(message):
         elif user_state.stripped and not user_state.current_status['is_marked']:
             responses = [
                 f"Perfect. My symbol {user_state.current_status['symbol']} marks you as mine.",
-                f"You wear my mark well. Keep it visible.",
-                f"Good. My symbol {user_state.current_status['symbol']} shows your submission."
+                f"Good. My symbol {user_state.current_status['symbol']} shows your submission.",
+                f"You wear my symbol {user_state.current_status['symbol']} well."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
-            schedule_check_in(message.chat_id, user_state)
+            schedule_next_task(message.chat.id, user_state)
             return
 
         # Schedule next task
-        def send_next_task():
-            if not user_state.known_personal_info['wife_present']:
-                next_tasks = [
-                    "Edge for me. Show me in your next video.",
-                    "Stroke yourself. Send video when you're close.",
-                    "Time to please me. Edge and show me."
-                ]
-                bot.send_message(message.chat_id, random.choice(next_tasks))
-
-        # Schedule next task after a random interval
-        scheduler = AsyncIOScheduler()
-        scheduler.add_job(send_next_task, 'date',
-                        run_date=datetime.now() + timedelta(minutes=random.randint(3, 5)))
-        scheduler.start()
 
     except Exception as e:
         logger.error(f"Error handling photo/video: {str(e)}")
+
+def schedule_next_task(chat_id, user_state):
+    """Schedule the next task with realistic expectations"""
+    if user_state.known_personal_info['wife_present']:
+        return
+
+    def send_next_task():
+        tasks = [
+            "Edge for me. Send video proof.",
+            "Stroke yourself. Show me in your next video.",
+            "Time to edge. Record it for me."
+        ]
+        bot.send_message(chat_id, random.choice(tasks))
+
+    # Schedule next task after a short interval
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(send_next_task, 'date',
+                    run_date=datetime.now() + timedelta(minutes=random.randint(2, 3)))
+    scheduler.start()
 
 def send_progressive_task(chat_id, user_state):
     """Send the next appropriate task based on user's progress"""
