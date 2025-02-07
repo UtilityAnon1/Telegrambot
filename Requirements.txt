@@ -1,0 +1,3 @@
+python-telegram-bot==20.0  # For async support
+apscheduler==3.8.1  # For job scheduling (even though we're simplifying, this is still useful)
+aiohttp==3.8.1  # For async HTTP calls (also necessary for handling webhooks)
