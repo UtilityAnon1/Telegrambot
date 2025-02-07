@@ -101,11 +101,11 @@ class UserState:
 def generate_punishment_response(user_state):
     """Generate realistic punishment responses"""
     base_punishments = [
-        "Edge yourself and send me a video.",
-        f"Mark my symbol {user_state.current_status['symbol']} on your cock again. Show me.",
-        "Send me a video of you stroking. Stop when I say.",
-        "Edge yourself. Show me the desperation in your eyes.",
-        "Stroke yourself slowly. Send video proof."
+        "Edge for me. Send video proof.",
+        f"Mark my symbol {user_state.current_status['symbol']} again. Show me.",
+        "Stroke for me. Stop when I say.",
+        "Edge yourself. Let me see your desperation.",
+        "Show me how well you follow orders. Edge."
     ]
 
     exposure_threats = [
@@ -116,29 +116,9 @@ def generate_punishment_response(user_state):
         "You disappoint me with your defiance."
     ]
 
-    intense_punishments = [
-        "Edge yourself three times. Send video proof of each edge.",
-        "Time for a ruined orgasm. Show me.",
-        "Edge five times. I want to see each one.",
-        "Stroke until you're desperate, then ruin it. Video proof.",
-        "Time to break you completely. Edge until you're begging."
-    ]
-
-    # Calculate punishment intensity based on history
-    intensity = min(user_state.disobedience_count + user_state.session_strikes, 5)
-
     response = []
-
-    # Add base punishment
-    base = random.choice(base_punishments)
-    response.append(base)
-
-    # Add exposure threats if needed
-    if user_state.exposure_threat_level > 3:
-        response.append(random.choice(intense_punishments))
-    else:
-        response.append(random.choice(exposure_threats))
-        user_state.exposure_threat_level += 1
+    response.append(random.choice(base_punishments))
+    response.append(random.choice(exposure_threats))
 
     return ' '.join(response)
 
@@ -443,21 +423,20 @@ def handle_photo(message):
             user_state.current_status['last_check_in'] = datetime.now()
             user_state.current_status['requires_check_in'] = False
 
-            if user_state.current_status['is_marked']:
-                responses = [
-                    f"Good. Keep my symbol {user_state.current_status['symbol']} visible.",
-                    f"My symbol {user_state.current_status['symbol']} stays clear. As it should.",
-                    f"You maintain my mark well. Continue."
-                ]
-                bot.reply_to(message, random.choice(responses))
-                schedule_check_in(message.chat_id, user_state)
-                return
+            responses = [
+                f"Good. Keep my symbol {user_state.current_status['symbol']} visible.",
+                f"My symbol {user_state.current_status['symbol']} stays clear. As it should.",
+                f"You maintain my mark well. Continue."
+            ]
+            bot.reply_to(message, random.choice(responses))
+            schedule_check_in(message.chat_id, user_state)
+            return
 
         # Initial strip response
         if user_state.state == USER_STATE_RULES_GIVEN and not user_state.stripped:
             responses = [
-                f"Now mark my symbol {user_state.current_status['symbol']} on your cock. Show me.",
-                f"It's time for my mark. Draw {user_state.current_status['symbol']} on your cock.",
+                f"Now mark my symbol {user_state.current_status['symbol']} on your cock.",
+                f"Time to mark your cock with my symbol {user_state.current_status['symbol']}.",
                 f"Draw {user_state.current_status['symbol']} on your cock. Send proof."
             ]
             bot.reply_to(message, random.choice(responses))
@@ -469,8 +448,8 @@ def handle_photo(message):
         elif user_state.stripped and not user_state.current_status['is_marked']:
             responses = [
                 f"Perfect. My symbol {user_state.current_status['symbol']} marks you as mine.",
-                f"Good. You wear my mark well.",
-                f"You please me. Now maintain my mark."
+                f"You wear my mark well. Keep it visible.",
+                f"Good. My symbol {user_state.current_status['symbol']} shows your submission."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.current_status['is_marked'] = True
@@ -482,9 +461,9 @@ def handle_photo(message):
         def send_next_task():
             if not user_state.known_personal_info['wife_present']:
                 next_tasks = [
-                    "Edge for me. Send video proof.",
-                    "Show me you're still marked and desperate.",
-                    "Time to verify my mark. Send a photo."
+                    "Edge for me. Show me in your next video.",
+                    "Stroke yourself. Send video when you're close.",
+                    "Time to please me. Edge and show me."
                 ]
                 bot.send_message(message.chat_id, random.choice(next_tasks))
 
