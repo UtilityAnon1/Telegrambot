@@ -4,7 +4,7 @@ import logging
 import random
 import time  # Added for time.sleep()
 from datetime import datetime, timedelta
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from config import TELEGRAM_BOT_TOKEN, DUTY_MODE_ACTIVE, OWNER_TELEGRAM_ID
 
 # Add debug level logging
@@ -265,7 +265,7 @@ def handle_mark_command(message):
             response = random.choice(responses)
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
-            schedule_check_in(message.chat_id, user_state)
+            schedule_check_in(message.chat.id, user_state)
         else:
             response = f"My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it."
 
@@ -326,13 +326,9 @@ def schedule_check_in(chat_id, user_state):
         scheduler.add_job(send_check_in, 'date', 
                             run_date=datetime.now() + timedelta(hours=1))
 
-    # Initialize the scheduler if not already running
-    scheduler = AsyncIOScheduler()
-    if not scheduler.running:
-        scheduler.start()
-
     # Schedule first check-in
     schedule_next_check_in()
+
 
 
 @bot.message_handler(func=lambda message: True)
@@ -441,9 +437,9 @@ def handle_photo(message):
             user_state.current_status['requires_check_in'] = False
 
             responses = [
-                f"Good. Keep my symbol {user_state.current_status['symbol']} visible.",
-                f"My symbol {user_state.current_status['symbol']} stays clear. As it should.",
-                f"You maintain my mark well. Continue."
+                f"Good. My symbol {user_state.current_status['symbol']} remains visible. Edge for me now.",
+                f"My symbol {user_state.current_status['symbol']} is maintained properly. Time to edge.",
+                f"You maintain my symbol {user_state.current_status['symbol']} well. Now edge for me."
             ]
             bot.reply_to(message, random.choice(responses))
             schedule_check_in(message.chat.id, user_state)
@@ -461,42 +457,51 @@ def handle_photo(message):
             user_state.current_status['is_marked'] = False
             return
 
-        # Marking verification
+        # Marking verification and immediate follow-up
         elif user_state.stripped and not user_state.current_status['is_marked']:
             responses = [
-                f"Perfect. My symbol {user_state.current_status['symbol']} marks you as mine.",
-                f"Good. My symbol {user_state.current_status['symbol']} shows your submission.",
-                f"You wear my symbol {user_state.current_status['symbol']} well."
+                f"Perfect. You wear my symbol {user_state.current_status['symbol']} well. Edge for me now.",
+                f"Good. My symbol {user_state.current_status['symbol']} marks you as mine. Edge yourself.",
+                f"You maintain my symbol {user_state.current_status['symbol']} perfectly. Time to edge."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
-            schedule_next_task(message.chat.id, user_state)
             return
 
-        # Schedule next task
+        # Handle subsequent media submissions
+        else:
+            responses = [
+                "Good pet. Edge again for me.",
+                "Perfect. Now edge once more.",
+                "You please me. Edge again."
+            ]
+            bot.reply_to(message, random.choice(responses))
 
     except Exception as e:
-        logger.error(f"Error handling photo/video: {str(e)}")
+        logger.error(f"Error handling photo/video: {str(e)}", exc_info=True)
+        bot.reply_to(message, "An error occurred. Try again.")
 
 def schedule_next_task(chat_id, user_state):
     """Schedule the next task with realistic expectations"""
     if user_state.known_personal_info['wife_present']:
         return
 
-    def send_next_task():
+    try:
         tasks = [
-            "Edge for me. Send video proof.",
-            "Stroke yourself. Show me in your next video.",
-            "Time to edge. Record it for me."
+            "Edge for me. Send a video.",
+            "Stroke yourself and record it for me.",
+            "Time to edge. Show me your submission."
         ]
+
+        # Send immediate follow-up
         bot.send_message(chat_id, random.choice(tasks))
 
-    # Schedule next task after a short interval
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(send_next_task, 'date',
-                    run_date=datetime.now() + timedelta(minutes=random.randint(2, 3)))
-    scheduler.start()
+        # Schedule check-in
+        schedule_check_in(chat_id, user_state)
+
+    except Exception as e:
+        logger.error(f"Error scheduling next task: {str(e)}")
 
 def send_progressive_task(chat_id, user_state):
     """Send the next appropriate task based on user's progress"""
@@ -527,9 +532,14 @@ def send_progressive_task(chat_id, user_state):
 def handle_media(message):
     handle_photo(message)
 
+# Global scheduler initialization at the module level
+scheduler = BackgroundScheduler()
+scheduler.start()
+
 if __name__ == '__main__':
     try:
         logger.info("Starting bot polling...")
         bot.polling(none_stop=True)
     except Exception as e:
         logger.error(f"Critical error: {str(e)}")
+        scheduler.shutdown()
