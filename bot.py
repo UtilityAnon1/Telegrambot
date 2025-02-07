@@ -434,7 +434,7 @@ def handle_messages(message):
         logger.error(f"Error handling message: {str(e)}", exc_info=True)
         bot.reply_to(message, "An error occurred. Please try again.")
 
-# Modified handle_photo function to be more authoritative
+# Modified handle_photo function to ensure continuous flow
 def handle_photo(message):
     """Handle photo and video submissions with natural responses"""
     try:
@@ -447,20 +447,19 @@ def handle_photo(message):
             user_state.current_status['requires_check_in'] = False
 
             responses = [
-                f"Good. My symbol {user_state.current_status['symbol']} remains visible. Edge for me now.",
-                f"My symbol {user_state.current_status['symbol']} is maintained properly. Time to edge.",
-                f"You maintain my symbol {user_state.current_status['symbol']} well. Now edge for me."
+                f"Good. My symbol {user_state.current_status['symbol']} remains visible. Edge for me now. Send a video.",
+                f"My symbol {user_state.current_status['symbol']} is maintained well. Time to edge. Show me.",
+                f"You maintain my symbol {user_state.current_status['symbol']} perfectly. Edge for me. Record it."
             ]
             bot.reply_to(message, random.choice(responses))
-            schedule_check_in(message.chat.id, user_state)
             return
 
         # Initial strip response
         if user_state.state == USER_STATE_RULES_GIVEN and not user_state.stripped:
             responses = [
-                f"Now mark my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
-                f"Mark your cock with my symbol {user_state.current_status['symbol']}. Show me when done.",
-                f"Time to mark your cock with my symbol {user_state.current_status['symbol']}. Send proof."
+                f"Good. Now mark my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
+                f"Perfect. Mark your cock with my symbol {user_state.current_status['symbol']}. Show me when done.",
+                f"Acceptable. Now mark your cock with my symbol {user_state.current_status['symbol']}. Send proof."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.stripped = True
@@ -470,9 +469,9 @@ def handle_photo(message):
         # Marking verification and immediate follow-up
         elif user_state.stripped and not user_state.current_status['is_marked']:
             responses = [
-                f"Perfect. You wear my symbol {user_state.current_status['symbol']} well. Edge for me now.",
-                f"Good. My symbol {user_state.current_status['symbol']} marks you as mine. Edge yourself.",
-                f"You maintain my symbol {user_state.current_status['symbol']} perfectly. Time to edge."
+                f"Perfect. You wear my symbol {user_state.current_status['symbol']} well. Edge for me now. Send video proof.",
+                f"Good. My symbol {user_state.current_status['symbol']} marks you as mine. Edge yourself and show me.",
+                f"You maintain my symbol {user_state.current_status['symbol']} perfectly. Time to edge. Record it."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.current_status['is_marked'] = True
@@ -482,9 +481,9 @@ def handle_photo(message):
         # Handle subsequent media submissions
         else:
             responses = [
-                "Good pet. Edge again for me.",
-                "Perfect. Now edge once more.",
-                "You please me. Edge again."
+                "Good pet. Edge again. Send another video.",
+                "Perfect. Edge once more. Show me.",
+                "You please me. Edge again. Record it."
             ]
             bot.reply_to(message, random.choice(responses))
 
