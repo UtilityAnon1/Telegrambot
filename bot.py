@@ -99,81 +99,46 @@ class UserState:
         self.bot_mode = BotMode()  # Add this line to include mode tracking
 
 def generate_punishment_response(user_state):
-    """Generate escalating punishment responses based on user history and context"""
+    """Generate realistic punishment responses"""
     base_punishments = [
-        "Edge yourself {edge_count} times. Each edge must last at least 2 minutes.",
-        f"Mark my symbol {user_state.current_status['symbol']} on your cock again. Make it clear and visible.",
-        "Force {orgasm_count} ruined orgasms. No pleasure allowed.",
-        "Edge for {edge_duration} minutes straight. No breaks.",
-        "Perform {task_count} forced orgasms in succession. No rest between."
+        "Edge yourself and send me a video.",
+        f"Mark my symbol {user_state.current_status['symbol']} on your cock again. Show me.",
+        "Send me a video of you stroking. Stop when I say.",
+        "Edge yourself. Show me the desperation in your eyes.",
+        "Stroke yourself slowly. Send video proof."
     ]
 
     exposure_threats = [
         "Your disobedience is noted.",
         "One more slip and there will be consequences.",
         "This behavior is unacceptable.",
-        "I'm getting closer to harsher punishments.",
-        "Disobedience will not be tolerated.",
-        "Consider this a warning.",
-        "Your continued defiance is disappointing.",
-        "I expect better from you."
-
+        "I expect better from you.",
+        "You disappoint me with your defiance."
     ]
 
     intense_punishments = [
-        "Edge yourself until you're begging. Then edge 5 more times.",
-        "Time for a ruined orgasm. Edge 10 times, then ruin it completely.",
-        "Force {forced_count} orgasms in a row. Each one more painful than the last.",
-        "Edge constantly for the next hour. Send video proof every 10 minutes.",
-        "You'll edge 20 times, then beg me for a ruined orgasm.",
-        "Time to break you completely. Edge until you're crying.",
-        "Your cock is mine to torture. Edge until you can't think straight."
+        "Edge yourself three times. Send video proof of each edge.",
+        "Time for a ruined orgasm. Show me.",
+        "Edge five times. I want to see each one.",
+        "Stroke until you're desperate, then ruin it. Video proof.",
+        "Time to break you completely. Edge until you're begging."
     ]
 
-
     # Calculate punishment intensity based on history
-    intensity = min(user_state.disobedience_count + user_state.session_strikes, 10)
-    edge_count = intensity + 2
-    spank_count = intensity * 5
-    write_count = intensity * 2
-    orgasm_count = min(intensity, 5)
-    edge_duration = intensity * 5
-    task_count = min(intensity, 3)
-    forced_count = min(intensity, 4)
+    intensity = min(user_state.disobedience_count + user_state.session_strikes, 5)
 
     response = []
 
     # Add base punishment
-    base = random.choice(base_punishments).format(
-        edge_count=edge_count,
-        spank_count=spank_count,
-        write_count=write_count,
-        orgasm_count=orgasm_count,
-        edge_duration=edge_duration,
-        task_count=task_count,
-        forced_count=forced_count
-    )
+    base = random.choice(base_punishments)
     response.append(base)
 
-    # Add exposure threats if wife is known
+    # Add exposure threats if needed
     if user_state.exposure_threat_level > 3:
-        response.append(random.choice(intense_punishments).format(
-            forced_count=forced_count
-        ))
-        if user_state.exposure_threat_level > 5:
-            response.append("Your disobedience is pushing me closer to exposing you completely.")
+        response.append(random.choice(intense_punishments))
     else:
         response.append(random.choice(exposure_threats))
         user_state.exposure_threat_level += 1
-
-    # Track punishment history with more detail
-    user_state.punishment_history.append({
-        'timestamp': datetime.now(),
-        'intensity': intensity,
-        'punishment': ' '.join(response),
-        'exposure_level': user_state.exposure_threat_level,
-        'total_disobedience': user_state.disobedience_count
-    })
 
     return ' '.join(response)
 
@@ -468,11 +433,10 @@ def handle_messages(message):
 
 # Modified handle_photo function to be more authoritative
 def handle_photo(message):
-    """Handle photo and video submissions with progressive responses"""
+    """Handle photo and video submissions with natural responses"""
     try:
         user_id = message.from_user.id
         user_state = get_user_state(user_id)
-        content_type = message.content_type
 
         # Handle check-in responses
         if user_state.current_status['requires_check_in']:
@@ -481,20 +445,20 @@ def handle_photo(message):
 
             if user_state.current_status['is_marked']:
                 responses = [
-                    f"Good. My symbol {user_state.current_status['symbol']} remains visible. Keep it that way.",
-                    f"My symbol {user_state.current_status['symbol']} is maintained properly. As it should be.",
-                    f"You maintain my symbol {user_state.current_status['symbol']} well. Continue."
+                    f"Good. Keep my symbol {user_state.current_status['symbol']} visible.",
+                    f"My symbol {user_state.current_status['symbol']} stays clear. As it should.",
+                    f"You maintain my mark well. Continue."
                 ]
                 bot.reply_to(message, random.choice(responses))
-                schedule_check_in(message.chat.id, user_state)
+                schedule_check_in(message.chat_id, user_state)
                 return
 
         # Initial strip response
         if user_state.state == USER_STATE_RULES_GIVEN and not user_state.stripped:
             responses = [
-                f"Good. Now mark my symbol {user_state.current_status['symbol']} on your cock. Send photo evidence.",
-                f"Very well. Mark your cock with my symbol {user_state.current_status['symbol']}. Show me when done.",
-                f"Acceptable. Now mark your cock with my symbol {user_state.current_status['symbol']}. Send proof."
+                f"Now mark my symbol {user_state.current_status['symbol']} on your cock. Show me.",
+                f"It's time for my mark. Draw {user_state.current_status['symbol']} on your cock.",
+                f"Draw {user_state.current_status['symbol']} on your cock. Send proof."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.stripped = True
@@ -504,23 +468,23 @@ def handle_photo(message):
         # Marking verification
         elif user_state.stripped and not user_state.current_status['is_marked']:
             responses = [
-                f"Perfect. My symbol {user_state.current_status['symbol']} marks you as mine. Maintain it.",
-                f"Good. My symbol {user_state.current_status['symbol']} shows your submission. Keep it visible.",
-                f"Acceptable. My symbol {user_state.current_status['symbol']} marks my property. Maintain it."
+                f"Perfect. My symbol {user_state.current_status['symbol']} marks you as mine.",
+                f"Good. You wear my mark well.",
+                f"You please me. Now maintain my mark."
             ]
             bot.reply_to(message, random.choice(responses))
             user_state.current_status['is_marked'] = True
             user_state.current_status['mark_location'] = "cock"
-            schedule_check_in(message.chat.id, user_state)
+            schedule_check_in(message.chat_id, user_state)
             return
 
         # Schedule next task
         def send_next_task():
             if not user_state.known_personal_info['wife_present']:
                 next_tasks = [
-                    f"Show me my symbol {user_state.current_status['symbol']} is still visible.",
-                    "Edge yourself while displaying my mark. Video proof required.",
-                    "Time to verify my mark remains clear. Send photo evidence."
+                    "Edge for me. Send video proof.",
+                    "Show me you're still marked and desperate.",
+                    "Time to verify my mark. Send a photo."
                 ]
                 bot.send_message(message.chat_id, random.choice(next_tasks))
 
