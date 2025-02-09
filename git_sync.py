@@ -21,9 +21,15 @@ def initialize_git():
         # Configure git credentials using environment variables
         github_token = os.environ.get('GITHUB_TOKEN')
         repo_url = os.environ.get('REPO_URL')
+        git_username = os.environ.get('GIT_USERNAME', 'UtilityAnon1')
+        git_email = os.environ.get('GIT_EMAIL', 'utilityanon@gmail.com')
 
         if not github_token or not repo_url:
             raise Exception("Missing required git credentials")
+
+        # Configure git user
+        subprocess.run(['git', 'config', 'user.name', git_username], check=True)
+        subprocess.run(['git', 'config', 'user.email', git_email], check=True)
 
         # Format repository URL with token
         auth_repo_url = f"https://x-access-token:{github_token}@{repo_url.split('https://')[1]}"
@@ -37,7 +43,14 @@ def initialize_git():
             else:
                 raise Exception("REPO_URL environment variable not set")
 
+        # Ensure we're on main branch
+        try:
+            subprocess.run(['git', 'checkout', 'main'], check=True)
+        except subprocess.CalledProcessError:
+            subprocess.run(['git', 'checkout', '-b', 'main'], check=True)
+
         return True
+
     except subprocess.CalledProcessError as e:
         logger.error(f"Error initializing git: {str(e)}")
         return False
