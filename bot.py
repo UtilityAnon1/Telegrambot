@@ -130,10 +130,12 @@ class UserData:
     def get_punishment_response(self) -> str:
         """Generate contextual punishment based on user history and current mood"""
         base_punishments = [
-            f"Write my symbol {self.symbol} on yourself {{count}} times. Show me when you're done.",
-            "Edge yourself {{count}} times, but you may NOT finish.",
-            "Stand in the corner, naked, for {{duration}} minutes. Send video proof.",
-            "Spank yourself {{count}} times. Count them out loud. Send video proof."
+            f"Write my symbol {self.symbol} on your pathetic cock {{count}} times. Show me when you're done.",
+            "Edge yourself {{count}} times, but you may NOT finish. Your orgasms belong to ME.",
+            "Stand in the corner, naked, holding your useless cock for {{duration}} minutes. Send video proof.",
+            "Spank your cock {{count}} times. Count them out loud. Send video proof.",
+            "Edge yourself {{count}} times and RUIN each one. Send video proof of your frustration.",
+            "Stroke yourself to the edge {{count}} times while thinking of me instead of your wife. Tell me how superior I am."
         ]
 
         # Adjust punishment severity based on context
@@ -144,9 +146,17 @@ class UserData:
 
         # Add mood-specific punishments
         if self.last_mood == "stern":
-            punishments.append(f"You will edge {count} times, ruining EACH ONE. Show me your frustration.")
+            punishments.extend([
+                f"Edge {count} times, ruining EACH ONE. What would Emily think of your desperation?",
+                "Stroke yourself until you're close, then write 'Property of Mistress' on your cock. Show me.",
+                "Edge yourself while looking at a photo of your wife. Tell me who owns your orgasms now."
+            ])
         elif self.last_mood == "displeased":
-            punishments.append(f"Mark my symbol {self.symbol} on yourself {count} times, each time larger than the last.")
+            punishments.extend([
+                f"Mark my symbol {self.symbol} on yourself {count} times. Each one larger than the last. Don't make me show Emily.",
+                "Edge yourself until you're desperate, then beg me not to tell your wife about our sessions.",
+                "Write 'Sorry Emily' on yourself, then edge until you're leaking. Show me your shame."
+            ])
 
         self.last_punishment_type = random.choice(punishments)
         self.punishment_count += 1
@@ -155,11 +165,11 @@ class UserData:
     def get_response_for_disobedience(self) -> str:
         """Generate escalating responses for disobedience"""
         stern_responses = [
-            f"I DEMANDED compliance. That's {self.disobedience_count} times you've disappointed me.",
-            f"Your hesitation DISGUSTS me. {self.disobedience_count} failures. The punishment doubles.",
-            f"You DARE to disobey ME? After {self.disobedience_count} previous failures?",
-            f"Each disobedience shows your weakness. {self.disobedience_count} times you've proven your inadequacy.",
-            "Your pathetic attempt at defiance amuses me. Now OBEY."
+            f"I DEMANDED compliance. That's {self.disobedience_count} times you've disappointed me. Should I show Emily how pathetic you are?",
+            f"Your hesitation DISGUSTS me. {self.disobedience_count} failures. What would your wife think of your weakness?",
+            f"You DARE to disobey ME? After {self.disobedience_count} previous failures? Perhaps Emily should see these photos.",
+            f"Each disobedience shows your weakness. {self.disobedience_count} times you've proven your inadequacy. Emily would be so disappointed.",
+            "Your pathetic attempt at defiance amuses me. Your cock belongs to ME now, not your wife. Now OBEY."
         ]
 
         self.intensity_level = min(5, self.intensity_level + 1)
@@ -277,9 +287,11 @@ def handle_messages(message):
     # Aggressive response to mentions of wife
     if "wife" in text or "emily" in text:
         dismissive_responses = [
-            "Your wife is IRRELEVANT. You belong to ME now.",
-            "Emily means NOTHING. Your devotion is to ME alone.",
-            "Your marriage is meaningless. You serve ME now, and ONLY me."
+            "Your wife is IRRELEVANT. Your cock belongs to ME now.",
+            "Emily means NOTHING. Your pathetic cock serves ME alone.",
+            "Your marriage is meaningless. You edge and cum ONLY when I allow it.",
+            "Emily doesn't own your orgasms anymore. I DO.",
+            "What would Emily think if she knew how desperately you edge for me?"
         ]
         bot.reply_to(message, random.choice(dismissive_responses))
         save_user_data(user_data)
