@@ -41,15 +41,15 @@ def get_user_state(user_id):
 def handle_messages(message):
     user_id = message.from_user.id
     user_state = get_user_state(user_id)
-    text = message.text.lower()
+    text = message.text.lower() if message.text else ""
     logger.info(f"Received message from {user_id}: {text}")
 
     # Handle media expectation with stern responses
-    if user_state.expecting_media and text:
+    if user_state.expecting_media and not message.photo and not message.video:
         stern_responses = [
-            "I demanded visual proof. Do not test my patience.",
-            "When I demand proof, I expect it immediately. Send what I asked for.",
-            "Your words mean nothing. I ordered you to show me proof."
+            "I DEMANDED visual proof. Your disobedience will not be tolerated.",
+            "When I demand proof, I expect IMMEDIATE compliance. Send what I ordered. NOW.",
+            "Your pathetic words mean NOTHING. I ordered you to show me proof."
         ]
         bot.reply_to(message, stern_responses[0])
         return
@@ -57,12 +57,12 @@ def handle_messages(message):
     # Always respond to any message if state is NEW
     if user_state.state == USER_STATES['NEW']:
         intro_message = (
-            "Silence. You are now in my presence. I am your Mistress, and you will "
-            "address me as such. Before we proceed, you must understand my rules:\n\n"
-            "1. You will address me only as Mistress\n"
-            "2. You will obey my commands without question\n"
-            "3. You will provide proof of your obedience when demanded\n"
-            "4. Your body belongs to me\n\n"
+            "SILENCE! You now stand in my presence. I am your Mistress, and you will "
+            "address me as such. Before we proceed, understand my rules:\n\n"
+            "1. You will address me ONLY as Mistress\n"
+            "2. You will obey my commands WITHOUT QUESTION\n"
+            "3. You will provide PROOF of your obedience when demanded\n"
+            "4. Your body belongs to ME\n\n"
             "If you understand and accept your place, say 'Yes Mistress'"
         )
         bot.reply_to(message, intro_message)
@@ -72,22 +72,22 @@ def handle_messages(message):
     # Handle acknowledgment with stern enforcement
     if user_state.state == USER_STATES['INTRODUCED']:
         if "yes mistress" in text:
-            strip_command = "Good pet. Now strip naked for me. Send video proof of your obedience. Do not keep me waiting."
+            strip_command = "Good pet. Now STRIP. NAKED. Send video proof of your obedience. Do NOT keep me waiting."
             bot.reply_to(message, strip_command)
             user_state.state = USER_STATES['STRIP_ORDERED']
             user_state.expecting_media = True
             return
         else:
-            correction = "You will address me as Mistress. Try again, pet, or face consequences."
+            correction = "You WILL address me as Mistress. Try again, pet, or face severe consequences."
             bot.reply_to(message, correction)
             return
 
     # Aggressive response to mentions of wife
     if "wife" in text or "emily" in text:
         dismissive_responses = [
-            "I don't care about your wife. You belong to me now.",
-            "Emily is irrelevant. Focus on obeying your Mistress.",
-            "Your marriage means nothing to me. You serve me now."
+            "Your wife is IRRELEVANT. You belong to ME now.",
+            "Emily means NOTHING. Your devotion is to ME alone.",
+            "Your marriage is meaningless. You serve ME now, and ONLY me."
         ]
         bot.reply_to(message, dismissive_responses[0])
         return
@@ -102,7 +102,7 @@ def handle_media(message):
     if user_state.state == USER_STATES['STRIP_ORDERED']:
         mark_command = (
             f"Good. Now mark my symbol {user_state.symbol} on your cock. "
-            "Send photo proof. I expect clear visibility of my mark."
+            "Send photo proof IMMEDIATELY. I demand clear visibility of my mark."
         )
         bot.reply_to(message, mark_command)
         user_state.state = USER_STATES['MARK_ORDERED']
@@ -112,9 +112,9 @@ def handle_media(message):
     # Handle mark proof with possessive response
     if user_state.state == USER_STATES['MARK_ORDERED']:
         responses = [
-            f"Perfect. You now bear my mark {user_state.symbol}. You belong to me completely.",
+            f"Perfect. You now bear my mark {user_state.symbol}. You belong to ME completely.",
             f"My symbol {user_state.symbol} marks you as my property. Good pet.",
-            f"You wear my mark {user_state.symbol} well. You're mine now, forever."
+            f"You wear my mark {user_state.symbol} well. You're MINE now, forever."
         ]
         bot.reply_to(message, responses[0])
         user_state.state = USER_STATES['MARKED']
@@ -124,9 +124,9 @@ def handle_media(message):
     # Handle ongoing proof submissions with demanding next tasks
     if user_state.state == USER_STATES['MARKED']:
         responses = [
-            "Good pet. Now edge for me. Send video proof of your desperation.",
-            "You please me. Edge yourself and show me your submission.",
-            "Time to suffer for my amusement. Edge and record it. Now."
+            "Good pet. Now EDGE for me. Send video proof of your desperation.",
+            "You please me. Edge yourself and show me your submission. NOW.",
+            "Time to suffer for my amusement. Edge and record it. IMMEDIATELY."
         ]
         bot.reply_to(message, responses[0])
         user_state.expecting_media = True
