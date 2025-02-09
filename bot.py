@@ -136,12 +136,19 @@ def handle_media(message):
 
     # Handle ongoing proof submissions with demanding next tasks
     if user_state.state == USER_STATES['MARKED']:
+        # Verify if it's a video for edging proof
+        if not message.video:
+            bot.reply_to(message, "I DEMAND video proof of your edging. Photos are NOT acceptable. Send what I ordered. NOW.")
+            return
+
         responses = [
-            "Good pet. Now EDGE for me. Send video proof of your desperation.",
+            "Good pet. Now EDGE for me again. Send video proof of your desperation.",
             "You please me. Edge yourself and show me your submission. NOW.",
-            "Time to suffer for my amusement. Edge and record it. IMMEDIATELY."
+            "Time to suffer for my amusement. Edge and record it. IMMEDIATELY.",
+            "PATHETIC. You can do better. Edge yourself again and prove your devotion."
         ]
-        bot.reply_to(message, responses[0])
+        from random import choice
+        bot.reply_to(message, choice(responses))
         user_state.expecting_media = True
 
 if __name__ == "__main__":
