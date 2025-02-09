@@ -393,7 +393,11 @@ def handle_media(message):
             additional_tasks = [
                 f"While you're at it, write my symbol {user.symbol} somewhere new. Make it BIGGER.",
                 "Spank yourself 10 times. Count them out loud. Send video proof.",
-                "Edge yourself again, but this time, beg for permission to cum. You won't get it."
+                "Edge yourself again, but this time, beg for permission to cum. You won't get it.",
+                "What would Emily think if she saw how desperate you are for ME?",
+                "Look at a photo of your wife while you edge for ME. Tell me who owns your cock now.",
+                "Edge yourself until you're leaking. Should I show Emily how pathetic you are?",
+                "Ruin your orgasm completely. Your pleasure belongs to ME, not your wife."
             ]
             bot.reply_to(message, random.choice(additional_tasks))
 
