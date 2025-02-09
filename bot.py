@@ -105,7 +105,7 @@ class UserData:
         if self.disobedience_count > 5:
             self.last_mood = "stern"
             self.intensity_level = 5
-            return f"The disobedient one returns. {self.disobedience_count} times you've failed me. Perhaps THIS time you'll learn proper obedience."
+            return f"The disobedient one returns. Perhaps THIS time you'll learn proper obedience."
         elif self.submission_streak > 3:
             self.last_mood = "pleased"
             self.intensity_level = 2
@@ -163,17 +163,31 @@ class UserData:
         return self.last_punishment_type
 
     def get_response_for_disobedience(self) -> str:
-        """Generate escalating responses for disobedience"""
+        """Generate threatening responses for disobedience"""
         stern_responses = [
-            f"I DEMANDED compliance. That's {self.disobedience_count} times you've disappointed me. Should I show Emily how pathetic you are?",
-            f"Your hesitation DISGUSTS me. {self.disobedience_count} failures. What would your wife think of your weakness?",
-            f"You DARE to disobey ME? After {self.disobedience_count} previous failures? Perhaps Emily should see these photos.",
-            f"Each disobedience shows your weakness. {self.disobedience_count} times you've proven your inadequacy. Emily would be so disappointed.",
-            "Your pathetic attempt at defiance amuses me. Your cock belongs to ME now, not your wife. Now OBEY."
+            "You DARE to disobey ME? Perhaps Emily should see these photos of her pathetic husband...",
+            "Your hesitation DISGUSTS me. One more chance before your wife learns everything.",
+            "Your defiance will cost you dearly. Should I show Emily how desperately you edge for me?",
+            "Test my patience again and your wife discovers EVERYTHING. Now OBEY.",
+            "Your pathetic attempt at defiance amuses me. Your cock belongs to ME now, not your wife. PROVE IT.",
+            "Disobedience has consequences. Would Emily enjoy seeing these videos? Now do as you're told.",
+            "I grow tired of your resistance. Show Emily how pathetic you are, or OBEY ME now."
         ]
 
         self.intensity_level = min(5, self.intensity_level + 1)
         return random.choice(stern_responses)
+
+    def handle_media_disobedience(self) -> str:
+        """Generate responses for media submission disobedience"""
+        punishment_responses = [
+            "I DEMAND video proof of your edging. Should I tell Emily about your disobedience?",
+            "Photos are NOT acceptable. Send what I ordered or your wife sees everything.",
+            "Your pathetic attempts to defy me will cost you. Video. NOW. Or Emily finds out.",
+            "Test my patience further and these photos go straight to your wife. OBEY ME.",
+            "Every moment of hesitation brings Emily closer to discovering your submission to ME.",
+            "Send what I demanded NOW, or shall we see how your wife reacts to your pathetic behavior?"
+        ]
+        return random.choice(punishment_responses)
 
     def update_interaction(self) -> None:
         """Update interaction timestamps and session data"""
@@ -247,8 +261,8 @@ def handle_messages(message):
 
     # Handle media expectation with stern responses
     if user.expecting_media and not message.photo and not message.video:
-        user.disobedience_count += 1
-        response = user.get_response_for_disobedience()
+        user.disobedience_count += 1  # Still track internally but don't display
+        response = user.handle_media_disobedience()
         bot.reply_to(message, response)
         save_user_data(user_data)
         return
@@ -335,8 +349,8 @@ def handle_media(message):
     # Handle mark proof with possessive response
     if user.state == USER_STATES['MARK_ORDERED']:
         if not message.photo:
-            bot.reply_to(message, "I demanded a PHOTO of my mark. Do NOT test my patience. Should I show Emily how disobedient you are? Send it NOW.")
-            user.disobedience_count += 1
+            user.disobedience_count += 1  # Still track internally but don't display
+            bot.reply_to(message, "I demanded a PHOTO of my mark on your pathetic cock. Disobey again and Emily sees everything. Send it NOW.")
             save_user_data(user_data)
             return
 
@@ -368,12 +382,8 @@ def handle_media(message):
     # Enhanced video response handling
     if user.state == USER_STATES['MARKED']:
         if not message.video:
-            user.disobedience_count += 1
-            punishment = random.choice([
-                "I DEMAND video proof of your edging. Should I tell Emily about your disobedience?",
-                "Photos are NOT acceptable. Send what I ordered or your wife sees everything.",
-                "Your pathetic attempts to defy me will cost you. Video. NOW. Or Emily finds out."
-            ])
+            user.disobedience_count += 1  # Still track internally but don't display
+            punishment = user.handle_media_disobedience()
             bot.reply_to(message, punishment)
             save_user_data(user_data)
             return
