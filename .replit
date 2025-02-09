@@ -13,29 +13,11 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Telegram Bot"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Git Sync"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "TelegramBot"
-
-[[workflows.workflow]]
-name = "Telegram Bot"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PYTHONUNBUFFERED=1 python bot.py"
 
 [[workflows.workflow]]
 name = "Git Sync"
