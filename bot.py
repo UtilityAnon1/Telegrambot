@@ -53,6 +53,8 @@ class UserData:
         self.punishment_count: int = 0
         self.last_punishment_type: Optional[str] = None
         self.submission_streak: int = 0
+        self.last_mood: Optional[str] = None  # Track bot's current mood
+        self.intensity_level: int = 1  # Scale of 1-5 for response intensity
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert user data to dictionary for persistence"""
@@ -71,7 +73,9 @@ class UserData:
             'favorite_tasks': self.favorite_tasks,
             'punishment_count': self.punishment_count,
             'last_punishment_type': self.last_punishment_type,
-            'submission_streak': self.submission_streak
+            'submission_streak': self.submission_streak,
+            'last_mood': self.last_mood,
+            'intensity_level': self.intensity_level
         }
 
     @classmethod
@@ -84,7 +88,7 @@ class UserData:
         return user
 
     def get_personalized_greeting(self) -> str:
-        """Generate personalized greeting based on user history"""
+        """Generate personalized greeting based on user history and context"""
         if self.total_sessions == 1:
             return "SILENCE! You now stand in my presence..."
 
@@ -94,32 +98,72 @@ class UserData:
         time_since_last = datetime.now() - datetime.strptime(self.last_interaction, '%Y-%m-%d %H:%M:%S')
         hours_since_last = time_since_last.total_seconds() / 3600
 
-        greetings = [
-            f"Back so soon, pet? Desperate for more punishment after only {int(hours_since_last)} hours? Pathetic.",
-            f"Ah, my marked one returns. Your symbol {self.symbol} must be aching for attention.",
-            f"Look who crawls back to their Mistress after {int(hours_since_last)} hours.",
-            f"Did you miss the sting of my commands? {int(hours_since_last)} hours is a long time to be without proper guidance."
-        ]
-
+        # Dynamic greetings based on interaction history
         if self.disobedience_count > 5:
-            return f"The disobedient one returns. {self.disobedience_count} times you've failed me. Will you do better now?"
+            self.last_mood = "stern"
+            self.intensity_level = 5
+            return f"The disobedient one returns. {self.disobedience_count} times you've failed me. Perhaps THIS time you'll learn proper obedience."
         elif self.submission_streak > 3:
-            return f"My obedient pet returns. {self.submission_streak} times you've pleased me. Let's continue your training."
+            self.last_mood = "pleased"
+            self.intensity_level = 2
+            return f"My most obedient pet returns. {self.submission_streak} tasks completed without hesitation. You please me... for now."
+        elif hours_since_last < 6:
+            self.last_mood = "amused"
+            responses = [
+                f"Back so soon? {int(hours_since_last)} hours without my control was too much for you? Pathetic.",
+                f"Desperate to feel my control again after only {int(hours_since_last)} hours? How weak you are.",
+                f"Did you miss the sting of my commands after just {int(hours_since_last)} hours? Show me how desperate you are."
+            ]
         else:
-            from random import choice
-            return choice(greetings)
+            self.last_mood = "displeased"
+            responses = [
+                f"FINALLY you return after {int(hours_since_last)} hours. Your absence displeases me.",
+                f"How DARE you stay away for {int(hours_since_last)} hours. You'll need to earn my favor again.",
+                f"Look who remembers their place after {int(hours_since_last)} hours. Your penance begins now."
+            ]
+
+        from random import choice
+        return choice(responses)
 
     def get_punishment_response(self) -> str:
-        """Generate a random punishment response"""
-        punishments = [
-            "Your disobedience requires correction. Edge yourself THREE times, but you may NOT finish.",
-            f"Write my symbol {self.symbol} on yourself 10 times. Show me when you're done.",
-            "Stand in the corner, naked, for 10 minutes. Send video proof.",
-            "Spank yourself 20 times. Count them out loud. Send video proof."
+        """Generate contextual punishment based on user history and current mood"""
+        base_punishments = [
+            f"Write my symbol {self.symbol} on yourself {{count}} times. Show me when you're done.",
+            "Edge yourself {{count}} times, but you may NOT finish.",
+            "Stand in the corner, naked, for {{duration}} minutes. Send video proof.",
+            "Spank yourself {{count}} times. Count them out loud. Send video proof."
         ]
+
+        # Adjust punishment severity based on context
+        count = min(self.disobedience_count * 2 + 5, 20)  # Scale up with disobedience
+        duration = min(self.disobedience_count + 5, 15)   # Scale up duration
+
+        punishments = [p.format(count=count, duration=duration) for p in base_punishments]
+
+        # Add mood-specific punishments
+        if self.last_mood == "stern":
+            punishments.append(f"You will edge {count} times, ruining EACH ONE. Show me your frustration.")
+        elif self.last_mood == "displeased":
+            punishments.append(f"Mark my symbol {self.symbol} on yourself {count} times, each time larger than the last.")
+
         from random import choice
         self.last_punishment_type = choice(punishments)
+        self.punishment_count += 1
         return self.last_punishment_type
+
+    def get_response_for_disobedience(self) -> str:
+        """Generate escalating responses for disobedience"""
+        stern_responses = [
+            f"I DEMANDED compliance. That's {self.disobedience_count} times you've disappointed me.",
+            f"Your hesitation DISGUSTS me. {self.disobedience_count} failures. The punishment doubles.",
+            f"You DARE to disobey ME? After {self.disobedience_count} previous failures?",
+            f"Each disobedience shows your weakness. {self.disobedience_count} times you've proven your inadequacy.",
+            "Your pathetic attempt at defiance amuses me. Now OBEY."
+        ]
+
+        self.intensity_level = min(5, self.intensity_level + 1)
+        from random import choice
+        return choice(stern_responses)
 
     def update_interaction(self) -> None:
         """Update interaction timestamps and session data"""
@@ -194,15 +238,8 @@ def handle_messages(message):
     # Handle media expectation with stern responses
     if user.expecting_media and not message.photo and not message.video:
         user.disobedience_count += 1
-        stern_responses = [
-            f"I DEMANDED visual proof. Your disobedience will not be tolerated. That's {user.disobedience_count} times you've disappointed me.",
-            "When I demand proof, I expect IMMEDIATE compliance. Send what I ordered. NOW.",
-            "Your pathetic words mean NOTHING. I ordered you to show me proof.",
-            "You DARE to disobey? Send what I demanded IMMEDIATELY.",
-            f"Your hesitation DISGUSTS me. Show me what I demanded. NOW. I've had to correct you {user.disobedience_count} times already."
-        ]
-        from random import choice
-        bot.reply_to(message, choice(stern_responses))
+        response = user.get_response_for_disobedience()
+        bot.reply_to(message, response)
         save_user_data(user_data)
         return
 
