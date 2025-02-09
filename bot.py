@@ -111,6 +111,11 @@ def handle_media(message):
 
     # Handle mark proof with possessive response
     if user_state.state == USER_STATES['MARK_ORDERED']:
+        # Verify it's a photo for the mark
+        if not message.photo:
+            bot.reply_to(message, "I demanded a PHOTO of my mark. Do NOT test my patience. Send it NOW.")
+            return
+
         responses = [
             f"Perfect. You now bear my mark {user_state.symbol}. You belong to ME completely.",
             f"My symbol {user_state.symbol} marks you as my property. Good pet.",
@@ -121,7 +126,10 @@ def handle_media(message):
         user_state.expecting_media = False
 
         # Add follow-up command after marking
-        follow_up = "Now that you're marked as MINE, edge yourself while staring at my symbol. Send video proof of your desperation."
+        follow_up = (
+            "Now that you're marked as MINE, edge yourself while staring at my symbol. "
+            "Send video proof of your desperation. Do NOT disappoint me."
+        )
         bot.reply_to(message, follow_up)
         user_state.expecting_media = True
         return
