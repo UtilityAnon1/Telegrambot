@@ -35,17 +35,19 @@ def initialize_git():
         subprocess.run(['git', 'config', 'user.name', git_username], check=True)
         subprocess.run(['git', 'config', 'user.email', git_email], check=True)
 
-        # Format repository URL with token
-        auth_repo_url = f"https://x-access-token:{github_token}@{repo_url.split('https://')[1]}"
+        # Format repository URL with token for authentication
+        if 'https://' in repo_url:
+            auth_repo_url = f"https://{github_token}@{repo_url.split('https://')[1]}"
+        else:
+            auth_repo_url = repo_url
 
         # Add remote if not exists
         try:
             subprocess.run(['git', 'remote', 'get-url', 'origin'], check=True)
+            # Update remote URL with authentication
+            subprocess.run(['git', 'remote', 'set-url', 'origin', auth_repo_url], check=True)
         except subprocess.CalledProcessError:
-            if repo_url:
-                subprocess.run(['git', 'remote', 'add', 'origin', auth_repo_url], check=True)
-            else:
-                raise Exception("REPO_URL environment variable not set")
+            subprocess.run(['git', 'remote', 'add', 'origin', auth_repo_url], check=True)
 
         # Ensure we're on main branch
         try:
