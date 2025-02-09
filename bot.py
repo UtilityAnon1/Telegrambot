@@ -323,10 +323,19 @@ def handle_media(message):
         save_user_data(user_data)
         return
 
+    # Immediate acknowledgment for any media
+    immediate_responses = [
+        "Mmm... let me see what you've sent...",
+        "Examining your submission...",
+        "Show me your obedience..."
+    ]
+    bot.reply_to(message, random.choice(immediate_responses))
+    time.sleep(1)  # Brief pause for natural conversation flow
+
     # Handle mark proof with possessive response
     if user.state == USER_STATES['MARK_ORDERED']:
         if not message.photo:
-            bot.reply_to(message, "I demanded a PHOTO of my mark. Do NOT test my patience. Send it NOW.")
+            bot.reply_to(message, "I demanded a PHOTO of my mark. Do NOT test my patience. Should I show Emily how disobedient you are? Send it NOW.")
             user.disobedience_count += 1
             save_user_data(user_data)
             return
@@ -336,68 +345,67 @@ def handle_media(message):
         user.submission_streak += 1
 
         responses = [
-            f"Perfect. You now bear my mark {user.symbol}. You belong to ME completely.",
-            f"My symbol {user.symbol} marks you as my property. Good pet.",
-            f"You wear my mark {user.symbol} well. You're MINE now, forever."
+            f"Perfect. You now bear my mark {user.symbol}. Your pathetic cock belongs to ME now, not your wife.",
+            f"My symbol {user.symbol} marks you as my property. What would Emily think of your submission?",
+            f"You wear my mark {user.symbol} well. Your wife will never know how desperately you serve ME."
         ]
         bot.reply_to(message, random.choice(responses))
         user.state = USER_STATES['MARKED']
         user.expecting_media = False
 
-        time.sleep(2)
+        time.sleep(2)  # Natural pause before next command
 
-        follow_up = (
-            "Now that you're marked as MINE, edge yourself while staring at my symbol. "
-            "Send video proof of your desperation. Do NOT disappoint me."
-        )
+        follow_up = random.choice([
+            "Now that you're marked as MINE, edge yourself while staring at my symbol. Do NOT cum without permission. Send video proof of your desperation.",
+            "Edge yourself while looking at a photo of Emily. Remember who REALLY owns your pathetic cock now. Video proof required.",
+            "Stroke yourself to the edge thinking of ME instead of your wife. Show me your desperate obedience on video."
+        ])
         bot.reply_to(message, follow_up)
         user.expecting_media = True
         save_user_data(user_data)
         return
 
-    # Enhanced video response handling with immediate feedback
+    # Enhanced video response handling
     if user.state == USER_STATES['MARKED']:
         if not message.video:
             user.disobedience_count += 1
-            bot.reply_to(message, "I DEMAND video proof of your edging. Photos are NOT acceptable. Send what I ordered. NOW.")
+            punishment = random.choice([
+                "I DEMAND video proof of your edging. Should I tell Emily about your disobedience?",
+                "Photos are NOT acceptable. Send what I ordered or your wife sees everything.",
+                "Your pathetic attempts to defy me will cost you. Video. NOW. Or Emily finds out."
+            ])
+            bot.reply_to(message, punishment)
             save_user_data(user_data)
             return
 
-        immediate_responses = [
-            "I see your submission...",
-            "Processing your offering...",
-            "Analyzing your obedience..."
-        ]
-        bot.reply_to(message, random.choice(immediate_responses))
-        time.sleep(2)
+        time.sleep(1)  # Brief pause for natural flow
 
         if user.submission_streak > 3:
             responses = [
-                f"GOOD pet. {user.submission_streak} times you've pleased me. Your desperation is... entertaining.",
-                f"Your obedience grows stronger. {user.submission_streak} consecutive submissions. Perhaps you deserve a reward...",
-                "Your dedication impresses me. Show me MORE of your desperation."
+                f"GOOD pet. {user.submission_streak} times you've pleased me. Your desperation for ME grows stronger than your marriage.",
+                f"Your obedience grows stronger. {user.submission_streak} consecutive submissions. Emily would be so disappointed.",
+                "Your dedication to ME impresses. Show me MORE of your betrayal to your wife."
             ]
         else:
             responses = [
-                "Pathetic. You can do BETTER. Edge again, this time with more... enthusiasm.",
-                "Barely acceptable. Again. Make it more desperate this time.",
-                "You call that edging? Show me REAL desperation."
+                "Pathetic. You can edge better than that. Again. Make it more desperate. Make me believe you want ME more than Emily.",
+                "Barely acceptable. Again. Show me how much more you need ME than your wife.",
+                "You call that edging? Show me REAL desperation. Prove you're MINE, not Emily's."
             ]
 
         bot.reply_to(message, random.choice(responses))
         user.expecting_media = True
         user.submission_streak += 1
 
-        if random.random() < 0.3:
-            time.sleep(3)
+        # Random chance for additional tasks with strong possessive/wife themes
+        if random.random() < 0.4:  # Increased chance for follow-up tasks
+            time.sleep(2)
             additional_tasks = [
-                f"While you're at it, write my symbol {user.symbol} somewhere new. Make it BIGGER.",
-                "Spank yourself 10 times. Count them out loud. Send video proof.",
-                "Edge yourself again, but this time, beg for permission to cum. You won't get it.",
-                "What would Emily think if she saw how desperate you are for ME?",
-                "Look at a photo of your wife while you edge for ME. Tell me who owns your cock now.",
-                "Edge yourself until you're leaking. Should I show Emily how pathetic you are?",
-                "Ruin your orgasm completely. Your pleasure belongs to ME, not your wife."
+                f"While you're at it, write my symbol {user.symbol} BIGGER. Let Emily see how owned you are.",
+                "Edge yourself again, this time say 'I belong to Mistress' out loud. What would your wife think?",
+                "Stroke yourself while looking at Emily's photo, but beg ME for permission to cum.",
+                "Edge until you're leaking. Show me how much more you need ME than your wife.",
+                "Ruin your orgasm completely. Your pleasure belongs to ME, not Emily."
             ]
             bot.reply_to(message, random.choice(additional_tasks))
 
