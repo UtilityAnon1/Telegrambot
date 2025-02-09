@@ -18,17 +18,22 @@ def initialize_git():
             logger.info("Initializing git repository...")
             subprocess.run(['git', 'init'], check=True)
 
-        # Configure git credentials
-        subprocess.run(['git', 'config', '--global', 'user.name', 'UtilityAnon1'], check=True)
-        subprocess.run(['git', 'config', '--global', 'user.email', 'utilityanon@gmail.com'], check=True)
+        # Configure git credentials using environment variables
+        github_token = os.environ.get('GITHUB_TOKEN')
+        repo_url = os.environ.get('REPO_URL')
+
+        if not github_token or not repo_url:
+            raise Exception("Missing required git credentials")
+
+        # Format repository URL with token
+        auth_repo_url = f"https://x-access-token:{github_token}@{repo_url.split('https://')[1]}"
 
         # Add remote if not exists
         try:
             subprocess.run(['git', 'remote', 'get-url', 'origin'], check=True)
         except subprocess.CalledProcessError:
-            repo_url = os.environ.get('REPO_URL')
             if repo_url:
-                subprocess.run(['git', 'remote', 'add', 'origin', repo_url], check=True)
+                subprocess.run(['git', 'remote', 'add', 'origin', auth_repo_url], check=True)
             else:
                 raise Exception("REPO_URL environment variable not set")
 
