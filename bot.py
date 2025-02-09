@@ -1,3 +1,4 @@
+from typing import Optional, Dict, List, Any
 import telebot
 import logging
 import json
@@ -14,7 +15,7 @@ from config import (
 # Set up logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG
+    level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
@@ -33,27 +34,29 @@ USER_STATES = {
 }
 
 class UserData:
-    def __init__(self, user_id):
-        self.user_id = user_id
-        self.state = USER_STATES['NEW']
-        self.expecting_media = False
-        self.last_command = None
-        self.symbol = DEFAULT_SYMBOL
-        self.last_interaction = None
-        self.total_interactions = 0
-        self.completed_tasks = []
-        self.disobedience_count = 0
-        self.last_mark_date = None
-        self.session_start_time = datetime.now()
-        self.total_sessions = 1
-        self.favorite_tasks = []
-        self.punishment_count = 0
-        self.last_punishment_type = None
-        self.submission_streak = 0
+    """Manages user state and interaction data with type safety"""
 
-    def to_dict(self):
-        data = {}
-        data.update({
+    def __init__(self, user_id: int):
+        self.user_id: int = user_id
+        self.state: str = USER_STATES['NEW']
+        self.expecting_media: bool = False
+        self.last_command: Optional[str] = None
+        self.symbol: str = DEFAULT_SYMBOL
+        self.last_interaction: Optional[str] = None
+        self.total_interactions: int = 0
+        self.completed_tasks: List[str] = []
+        self.disobedience_count: int = 0
+        self.last_mark_date: Optional[str] = None
+        self.session_start_time: datetime = datetime.now()
+        self.total_sessions: int = 1
+        self.favorite_tasks: List[str] = []
+        self.punishment_count: int = 0
+        self.last_punishment_type: Optional[str] = None
+        self.submission_streak: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert user data to dictionary for persistence"""
+        return {
             'user_id': self.user_id,
             'state': self.state,
             'expecting_media': self.expecting_media,
@@ -69,18 +72,19 @@ class UserData:
             'punishment_count': self.punishment_count,
             'last_punishment_type': self.last_punishment_type,
             'submission_streak': self.submission_streak
-        })
-        return data
+        }
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data: Dict[str, Any]) -> 'UserData':
+        """Create UserData instance from dictionary"""
         user = cls(data['user_id'])
         for key, value in data.items():
             if hasattr(user, key):
                 setattr(user, key, value)
         return user
 
-    def get_personalized_greeting(self):
+    def get_personalized_greeting(self) -> str:
+        """Generate personalized greeting based on user history"""
         if self.total_sessions == 1:
             return "SILENCE! You now stand in my presence..."
 
@@ -105,7 +109,8 @@ class UserData:
             from random import choice
             return choice(greetings)
 
-    def get_punishment_response(self):
+    def get_punishment_response(self) -> str:
+        """Generate a random punishment response"""
         punishments = [
             "Your disobedience requires correction. Edge yourself THREE times, but you may NOT finish.",
             f"Write my symbol {self.symbol} on yourself 10 times. Show me when you're done.",
@@ -116,7 +121,8 @@ class UserData:
         self.last_punishment_type = choice(punishments)
         return self.last_punishment_type
 
-    def update_interaction(self):
+    def update_interaction(self) -> None:
+        """Update interaction timestamps and session data"""
         current_time = datetime.now()
         if self.last_interaction:
             last_time = datetime.strptime(self.last_interaction, '%Y-%m-%d %H:%M:%S')
@@ -126,7 +132,6 @@ class UserData:
 
         self.last_interaction = current_time.strftime('%Y-%m-%d %H:%M:%S')
         self.total_interactions += 1
-
 
 def save_user_data(users_data):
     try:
