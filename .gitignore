@@ -6,13 +6,20 @@ __pycache__/
 # Environment variables
 .env
 .env.local
+.env.*
+!.env.example
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Logs
 *.log
+logs/
 
 # Local development
 config.local.py
+.replit
+.upm/

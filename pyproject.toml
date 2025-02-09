@@ -9,4 +9,5 @@ dependencies = [
     "pytelegrambotapi>=4.26.0",
     "python-dotenv>=1.0.1",
     "python-telegram-bot>=21.10",
+    "telebot>=0.0.5",
 ]

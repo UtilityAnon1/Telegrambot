@@ -19,6 +19,10 @@ args = "Telegram Bot"
 task = "workflow.run"
 args = "Git Sync"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "TelegramBot"
+
 [[workflows.workflow]]
 name = "Telegram Bot"
 author = "agent"
@@ -46,6 +50,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python git_sync.py"
+
+[[workflows.workflow]]
+name = "TelegramBot"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python launcher.py"
 
 [deployment]
 run = ["sh", "-c", "PYTHONUNBUFFERED=1 python bot.py"]
