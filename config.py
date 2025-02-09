@@ -9,12 +9,13 @@ TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 if not TELEGRAM_BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set")
 
-# OpenAI API Key
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+# Owner Telegram ID (required for private access)
+OWNER_TELEGRAM_ID = os.environ.get('OWNER_TELEGRAM_ID')
+if not OWNER_TELEGRAM_ID:
+    raise ValueError("OWNER_TELEGRAM_ID environment variable is not set")
 
 # Bot Configuration
 DUTY_MODE_ACTIVE = True
-OWNER_TELEGRAM_ID = os.environ.get('OWNER_TELEGRAM_ID')
 
 # Git Configuration - Only used in development for auto-sync
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')

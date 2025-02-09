@@ -3,7 +3,7 @@ import logging
 import json
 import os
 from datetime import datetime
-from config import TELEGRAM_BOT_TOKEN
+from config import TELEGRAM_BOT_TOKEN, OWNER_TELEGRAM_ID
 
 # Set up logging
 logging.basicConfig(
@@ -109,9 +109,20 @@ def get_user_data(user_id):
         user_data[user_id] = UserData(user_id)
     return user_data[user_id]
 
+def verify_owner(user_id):
+    """Verify if the user is the owner of the bot"""
+    return str(user_id) == str(OWNER_TELEGRAM_ID)
+
 @bot.message_handler(func=lambda message: True)
 def handle_messages(message):
     user_id = message.from_user.id
+
+    # Block non-owner access
+    if not verify_owner(user_id):
+        logger.warning(f"Unauthorized access attempt from user ID: {user_id}")
+        bot.reply_to(message, "Access denied. This is a private bot.")
+        return
+
     user = get_user_data(user_id)
     text = message.text.lower() if message.text else ""
 
@@ -154,30 +165,19 @@ def handle_messages(message):
         save_user_data(user_data)
         return
 
-    # Returning user check and greeting
+    # Handle introduction for first-time interaction
     if user.state == USER_STATES['NEW']:
-        if user.total_interactions > 1:
-            # Known user returning
-            stern_return = (
-                f"So, you've crawled back to me, have you? Good. "
-                f"You've disappointed me {user.disobedience_count} times before. "
-                "Are you ready to properly submit to my will this time?"
-            )
-            bot.reply_to(message, stern_return)
-            user.state = USER_STATES['ACKNOWLEDGED']
-        else:
-            # New user introduction
-            intro_message = (
-                "SILENCE! You now stand in my presence. I am your Mistress, and you will "
-                "address me as such. Before we proceed, understand my rules:\n\n"
-                "1. You will address me ONLY as Mistress\n"
-                "2. You will obey my commands WITHOUT QUESTION\n"
-                "3. You will provide PROOF of your obedience when demanded\n"
-                "4. Your body belongs to ME\n\n"
-                "If you understand and accept your place, say 'Yes Mistress'"
-            )
-            bot.reply_to(message, intro_message)
-            user.state = USER_STATES['INTRODUCED']
+        intro_message = (
+            "SILENCE! You now stand in my presence. I am your Mistress, and you will "
+            "address me as such. Before we proceed, understand my rules:\n\n"
+            "1. You will address me ONLY as Mistress\n"
+            "2. You will obey my commands WITHOUT QUESTION\n"
+            "3. You will provide PROOF of your obedience when demanded\n"
+            "4. Your body belongs to ME\n\n"
+            "If you understand and accept your place, say 'Yes Mistress'"
+        )
+        bot.reply_to(message, intro_message)
+        user.state = USER_STATES['INTRODUCED']
         save_user_data(user_data)
         return
 
@@ -203,15 +203,23 @@ def handle_messages(message):
             "Emily means NOTHING. Your devotion is to ME alone.",
             "Your marriage is meaningless. You serve ME now, and ONLY me."
         ]
-        bot.reply_to(message, dismissive_responses[0])
+        from random import choice
+        bot.reply_to(message, choice(dismissive_responses))
         save_user_data(user_data)
         return
 
 @bot.message_handler(content_types=['video', 'photo'])
 def handle_media(message):
     user_id = message.from_user.id
+
+    # Block non-owner access for media
+    if not verify_owner(user_id):
+        logger.warning(f"Unauthorized media access attempt from user ID: {user_id}")
+        bot.reply_to(message, "Access denied. This is a private bot.")
+        return
+
     user = get_user_data(user_id)
-    logger.info(f"Received media from {user_id}")
+    logger.info(f"Received media from owner (user ID: {user_id})")
 
     # Handle strip proof with demanding next step
     if user.state == USER_STATES['STRIP_ORDERED']:
@@ -278,4 +286,5 @@ def handle_media(message):
 
 if __name__ == "__main__":
     logger.info("Starting bot...")
+    logger.info(f"Bot configured for owner ID: {OWNER_TELEGRAM_ID}")
     bot.polling(none_stop=True)
