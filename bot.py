@@ -49,9 +49,12 @@ def handle_messages(message):
         stern_responses = [
             "I DEMANDED visual proof. Your disobedience will not be tolerated.",
             "When I demand proof, I expect IMMEDIATE compliance. Send what I ordered. NOW.",
-            "Your pathetic words mean NOTHING. I ordered you to show me proof."
+            "Your pathetic words mean NOTHING. I ordered you to show me proof.",
+            "You DARE to disobey? Send what I demanded IMMEDIATELY.",
+            "Your hesitation DISGUSTS me. Show me what I demanded. NOW."
         ]
-        bot.reply_to(message, stern_responses[0])
+        from random import choice
+        bot.reply_to(message, choice(stern_responses))
         return
 
     # Always respond to any message if state is NEW
@@ -100,11 +103,12 @@ def handle_media(message):
 
     # Handle strip proof with demanding next step
     if user_state.state == USER_STATES['STRIP_ORDERED']:
-        mark_command = (
-            f"Good. Now mark my symbol {user_state.symbol} on your cock. "
-            "Send photo proof IMMEDIATELY. I demand clear visibility of my mark."
-        )
-        bot.reply_to(message, mark_command)
+        mark_commands = [
+            f"Good. Now mark my symbol {user_state.symbol} on your cock. Send photo proof IMMEDIATELY.",
+            f"Acceptable. Mark my symbol {user_state.symbol} on yourself. Show me clear proof NOW.",
+            f"You may proceed. Mark {user_state.symbol} on your flesh. Send CLEAR photo evidence."
+        ]
+        bot.reply_to(message, choice(mark_commands))
         user_state.state = USER_STATES['MARK_ORDERED']
         user_state.expecting_media = True
         return
