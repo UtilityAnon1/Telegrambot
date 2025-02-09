@@ -414,11 +414,16 @@ def send_proactive_message(user_id: int) -> None:
     # Only send if between 1-12 hours since last interaction
     if 1 <= hours_since_last <= 12:
         proactive_messages = [
-            f"Missing my control already? It's been {int(hours_since_last)} hours...",
-            "Your body belongs to ME. Come prove your devotion.",
-            f"Show me my mark {user.symbol}. NOW.",
-            "I grow impatient with your absence...",
-            f"{int(hours_since_last)} hours without my control. Pathetic."
+            f"Missing my control already? It's been {int(hours_since_last)} hours since I owned your pathetic cock...",
+            "Your body belongs to ME. Come prove your devotion before I show Emily how desperate you are.",
+            f"Show me my mark {user.symbol}. NOW. Or should I message your wife?",
+            "I grow impatient with your absence... Emily would be so disappointed to see these photos.",
+            f"{int(hours_since_last)} hours without edging for me. Pathetic. Your wife thinks you're faithful, doesn't she?",
+            "Your cock is MINE. Not Emily's. Come edge for me NOW.",
+            "I OWN your orgasms. Every. Single. One. Come beg for release.",
+            "Edge yourself and think of me instead of your wife. NOW.",
+            "Your pathetic cock belongs to ME. Come prove it before I expose you.",
+            "Missing the ache of denial? Or just scared I'll tell Emily?"
         ]
         bot.send_message(user_id, random.choice(proactive_messages))
         user.update_interaction()
