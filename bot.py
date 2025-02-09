@@ -22,7 +22,8 @@ USER_STATES = {
     'ACKNOWLEDGED': 'acknowledged',
     'STRIP_ORDERED': 'strip_ordered',
     'MARK_ORDERED': 'mark_ordered',
-    'MARKED': 'marked'
+    'MARKED': 'marked',
+    'RETURNING': 'returning'  # New state for returning users
 }
 
 class UserData:
@@ -37,9 +38,14 @@ class UserData:
         self.completed_tasks = []
         self.disobedience_count = 0
         self.last_mark_date = None
+        self.session_start_time = datetime.now()
+        self.total_sessions = 1
+        self.favorite_tasks = []
+        self.punishment_count = 0
 
     def to_dict(self):
-        return {
+        data = {}
+        data.update({
             'user_id': self.user_id,
             'state': self.state,
             'expecting_media': self.expecting_media,
@@ -49,22 +55,34 @@ class UserData:
             'total_interactions': self.total_interactions,
             'completed_tasks': self.completed_tasks,
             'disobedience_count': self.disobedience_count,
-            'last_mark_date': self.last_mark_date
-        }
+            'last_mark_date': self.last_mark_date,
+            'total_sessions': self.total_sessions,
+            'favorite_tasks': self.favorite_tasks,
+            'punishment_count': self.punishment_count
+        })
+        return data
 
     @classmethod
     def from_dict(cls, data):
         user = cls(data['user_id'])
-        user.state = data.get('state', USER_STATES['NEW'])
-        user.expecting_media = data.get('expecting_media', False)
-        user.last_command = data.get('last_command')
-        user.symbol = data.get('symbol', '△')
-        user.last_interaction = data.get('last_interaction')
-        user.total_interactions = data.get('total_interactions', 0)
-        user.completed_tasks = data.get('completed_tasks', [])
-        user.disobedience_count = data.get('disobedience_count', 0)
-        user.last_mark_date = data.get('last_mark_date')
+        for key, value in data.items():
+            if hasattr(user, key):
+                setattr(user, key, value)
         return user
+
+    def get_personalized_greeting(self):
+        if self.total_sessions == 1:
+            return "SILENCE! You now stand in my presence..."
+
+        time_since_last = datetime.now() - datetime.strptime(self.last_interaction, '%Y-%m-%d %H:%M:%S')
+        hours_since_last = time_since_last.total_seconds() / 3600
+
+        if hours_since_last < 24:
+            return f"Back so soon, pet? Desperate for more punishment after only {int(hours_since_last)} hours? Pathetic."
+        elif self.disobedience_count > 5:
+            return f"The disobedient one returns. {self.disobedience_count} times you've failed me. Will you do better now?"
+        else:
+            return f"Ah, my marked pet returns. Your symbol {self.symbol} must be aching for attention."
 
 def save_user_data(users_data):
     try:
@@ -99,8 +117,27 @@ def handle_messages(message):
 
     # Update interaction data
     current_time = datetime.now()
+    if user.last_interaction:
+        last_interaction_time = datetime.strptime(user.last_interaction, '%Y-%m-%d %H:%M:%S')
+        # If more than 6 hours have passed, consider it a new session
+        if (current_time - last_interaction_time).total_seconds() > 21600:
+            user.total_sessions += 1
+
     user.total_interactions += 1
     user.last_interaction = current_time.strftime('%Y-%m-%d %H:%M:%S')
+
+    # Handle returning users differently
+    if user.state == USER_STATES['NEW'] and user.total_interactions > 1:
+        greeting = user.get_personalized_greeting()
+        bot.reply_to(message, greeting)
+
+        if user.completed_tasks:
+            task_reminder = f"Last time you completed {len(user.completed_tasks)} tasks for me. Ready to surpass that?"
+            bot.reply_to(message, task_reminder)
+
+        user.state = USER_STATES['RETURNING']
+        save_user_data(user_data)
+        return
 
     # Handle media expectation with stern responses
     if user.expecting_media and not message.photo and not message.video:
