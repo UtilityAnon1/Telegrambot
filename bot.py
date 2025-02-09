@@ -3,6 +3,9 @@ import telebot
 import logging
 import json
 import os
+import time
+import random
+import threading
 from datetime import datetime, timedelta
 from config import (
     TELEGRAM_BOT_TOKEN, 
@@ -122,8 +125,7 @@ class UserData:
                 f"Look who remembers their place after {int(hours_since_last)} hours. Your penance begins now."
             ]
 
-        from random import choice
-        return choice(responses)
+        return random.choice(responses)
 
     def get_punishment_response(self) -> str:
         """Generate contextual punishment based on user history and current mood"""
@@ -146,8 +148,7 @@ class UserData:
         elif self.last_mood == "displeased":
             punishments.append(f"Mark my symbol {self.symbol} on yourself {count} times, each time larger than the last.")
 
-        from random import choice
-        self.last_punishment_type = choice(punishments)
+        self.last_punishment_type = random.choice(punishments)
         self.punishment_count += 1
         return self.last_punishment_type
 
@@ -162,8 +163,7 @@ class UserData:
         ]
 
         self.intensity_level = min(5, self.intensity_level + 1)
-        from random import choice
-        return choice(stern_responses)
+        return random.choice(stern_responses)
 
     def update_interaction(self) -> None:
         """Update interaction timestamps and session data"""
@@ -281,8 +281,7 @@ def handle_messages(message):
             "Emily means NOTHING. Your devotion is to ME alone.",
             "Your marriage is meaningless. You serve ME now, and ONLY me."
         ]
-        from random import choice
-        bot.reply_to(message, choice(dismissive_responses))
+        bot.reply_to(message, random.choice(dismissive_responses))
         save_user_data(user_data)
         return
 
@@ -306,8 +305,7 @@ def handle_media(message):
             f"Acceptable. Mark my symbol {user.symbol} on yourself. Show me clear proof NOW.",
             f"You may proceed. Mark {user.symbol} on your flesh. Send CLEAR photo evidence."
         ]
-        from random import choice
-        bot.reply_to(message, choice(mark_commands))
+        bot.reply_to(message, random.choice(mark_commands))
         user.state = USER_STATES['MARK_ORDERED']
         user.expecting_media = True
         save_user_data(user_data)
@@ -323,17 +321,18 @@ def handle_media(message):
 
         user.last_mark_date = datetime.now().strftime('%Y-%m-%d')
         user.completed_tasks.append(f"Marked with symbol {user.symbol}")
-        user.submission_streak +=1
+        user.submission_streak += 1
 
         responses = [
             f"Perfect. You now bear my mark {user.symbol}. You belong to ME completely.",
             f"My symbol {user.symbol} marks you as my property. Good pet.",
             f"You wear my mark {user.symbol} well. You're MINE now, forever."
         ]
-        from random import choice
-        bot.reply_to(message, choice(responses))
+        bot.reply_to(message, random.choice(responses))
         user.state = USER_STATES['MARKED']
         user.expecting_media = False
+
+        time.sleep(2)
 
         follow_up = (
             "Now that you're marked as MINE, edge yourself while staring at my symbol. "
@@ -344,7 +343,7 @@ def handle_media(message):
         save_user_data(user_data)
         return
 
-    # Handle ongoing proof submissions with demanding next tasks
+    # Enhanced video response handling with immediate feedback
     if user.state == USER_STATES['MARKED']:
         if not message.video:
             user.disobedience_count += 1
@@ -352,20 +351,86 @@ def handle_media(message):
             save_user_data(user_data)
             return
 
-        responses = [
-            f"Good pet. That's {len(user.completed_tasks)} tasks you've completed for me. Now EDGE for me again. Send video proof of your desperation.",
-            "You please me. Edge yourself and show me your submission. NOW.",
-            "Time to suffer for my amusement. Edge and record it. IMMEDIATELY.",
-            f"PATHETIC. You can do better. Edge yourself again and prove your devotion. You've disappointed me {user.disobedience_count} times already."
+        immediate_responses = [
+            "I see your submission...",
+            "Processing your offering...",
+            "Analyzing your obedience..."
         ]
-        from random import choice
-        bot.reply_to(message, choice(responses))
+        bot.reply_to(message, random.choice(immediate_responses))
+        time.sleep(2)
+
+        if user.submission_streak > 3:
+            responses = [
+                f"GOOD pet. {user.submission_streak} times you've pleased me. Your desperation is... entertaining.",
+                f"Your obedience grows stronger. {user.submission_streak} consecutive submissions. Perhaps you deserve a reward...",
+                "Your dedication impresses me. Show me MORE of your desperation."
+            ]
+        else:
+            responses = [
+                "Pathetic. You can do BETTER. Edge again, this time with more... enthusiasm.",
+                "Barely acceptable. Again. Make it more desperate this time.",
+                "You call that edging? Show me REAL desperation."
+            ]
+
+        bot.reply_to(message, random.choice(responses))
         user.expecting_media = True
         user.submission_streak += 1
+
+        if random.random() < 0.3:
+            time.sleep(3)
+            additional_tasks = [
+                f"While you're at it, write my symbol {user.symbol} somewhere new. Make it BIGGER.",
+                "Spank yourself 10 times. Count them out loud. Send video proof.",
+                "Edge yourself again, but this time, beg for permission to cum. You won't get it."
+            ]
+            bot.reply_to(message, random.choice(additional_tasks))
+
+        save_user_data(user_data)
+        return
+
+# Add proactive messaging system
+def send_proactive_message(user_id: int) -> None:
+    """Send proactive messages to maintain engagement"""
+    user = get_user_data(user_id)
+
+    if not user.last_interaction:
+        return
+
+    last_interaction = datetime.strptime(user.last_interaction, '%Y-%m-%d %H:%M:%S')
+    hours_since_last = (datetime.now() - last_interaction).total_seconds() / 3600
+
+    # Only send if between 1-12 hours since last interaction
+    if 1 <= hours_since_last <= 12:
+        proactive_messages = [
+            f"Missing my control already? It's been {int(hours_since_last)} hours...",
+            "Your body belongs to ME. Come prove your devotion.",
+            f"Show me my mark {user.symbol}. NOW.",
+            "I grow impatient with your absence...",
+            f"{int(hours_since_last)} hours without my control. Pathetic."
+        ]
+        bot.send_message(user_id, random.choice(proactive_messages))
+        user.update_interaction()
         save_user_data(user_data)
 
+# Add scheduled task for proactive messaging
+def schedule_proactive_messages():
+    """Schedule periodic checks for proactive messaging"""
+    while True:
+        try:
+            if verify_owner(OWNER_TELEGRAM_ID):
+                send_proactive_message(int(OWNER_TELEGRAM_ID))
+            time.sleep(3600)  # Check every hour
+        except Exception as e:
+            logger.error(f"Error in proactive messaging: {str(e)}")
+            time.sleep(300)  # Wait 5 minutes on error
 
+# Start proactive messaging in a separate thread
 if __name__ == "__main__":
     logger.info("Starting bot...")
     logger.info(f"Bot configured for owner ID: {OWNER_TELEGRAM_ID}")
+
+    # Start proactive messaging thread
+    proactive_thread = threading.Thread(target=schedule_proactive_messages, daemon=True)
+    proactive_thread.start()
+
     bot.polling(none_stop=True)
