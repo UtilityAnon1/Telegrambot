@@ -119,6 +119,11 @@ def handle_media(message):
         bot.reply_to(message, responses[0])
         user_state.state = USER_STATES['MARKED']
         user_state.expecting_media = False
+
+        # Add follow-up command after marking
+        follow_up = "Now that you're marked as MINE, edge yourself while staring at my symbol. Send video proof of your desperation."
+        bot.reply_to(message, follow_up)
+        user_state.expecting_media = True
         return
 
     # Handle ongoing proof submissions with demanding next tasks
