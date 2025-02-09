@@ -16,6 +16,8 @@ if not OWNER_TELEGRAM_ID:
 
 # Bot Configuration
 DUTY_MODE_ACTIVE = True
+DEFAULT_SYMBOL = '△'  # Triangle symbol
+SESSION_TIMEOUT = 6  # Hours before considering it a new session
 
 # Git Configuration - Only used in development for auto-sync
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')

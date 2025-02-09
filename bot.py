@@ -2,8 +2,14 @@ import telebot
 import logging
 import json
 import os
-from datetime import datetime
-from config import TELEGRAM_BOT_TOKEN, OWNER_TELEGRAM_ID
+from datetime import datetime, timedelta
+from config import (
+    TELEGRAM_BOT_TOKEN, 
+    OWNER_TELEGRAM_ID, 
+    DUTY_MODE_ACTIVE,
+    DEFAULT_SYMBOL,
+    SESSION_TIMEOUT
+)
 
 # Set up logging
 logging.basicConfig(
@@ -15,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Initialize bot
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
-# User states and data persistence
+# Enhanced user states
 USER_STATES = {
     'NEW': 'new',
     'INTRODUCED': 'introduced',
@@ -23,7 +29,7 @@ USER_STATES = {
     'STRIP_ORDERED': 'strip_ordered',
     'MARK_ORDERED': 'mark_ordered',
     'MARKED': 'marked',
-    'RETURNING': 'returning'  # New state for returning users
+    'RETURNING': 'returning'
 }
 
 class UserData:
@@ -32,7 +38,7 @@ class UserData:
         self.state = USER_STATES['NEW']
         self.expecting_media = False
         self.last_command = None
-        self.symbol = '△'  # Triangle symbol
+        self.symbol = DEFAULT_SYMBOL
         self.last_interaction = None
         self.total_interactions = 0
         self.completed_tasks = []
@@ -42,6 +48,8 @@ class UserData:
         self.total_sessions = 1
         self.favorite_tasks = []
         self.punishment_count = 0
+        self.last_punishment_type = None
+        self.submission_streak = 0
 
     def to_dict(self):
         data = {}
@@ -58,7 +66,9 @@ class UserData:
             'last_mark_date': self.last_mark_date,
             'total_sessions': self.total_sessions,
             'favorite_tasks': self.favorite_tasks,
-            'punishment_count': self.punishment_count
+            'punishment_count': self.punishment_count,
+            'last_punishment_type': self.last_punishment_type,
+            'submission_streak': self.submission_streak
         })
         return data
 
@@ -74,15 +84,49 @@ class UserData:
         if self.total_sessions == 1:
             return "SILENCE! You now stand in my presence..."
 
+        if not self.last_interaction:
+            return "Return to me, my pet..."
+
         time_since_last = datetime.now() - datetime.strptime(self.last_interaction, '%Y-%m-%d %H:%M:%S')
         hours_since_last = time_since_last.total_seconds() / 3600
 
-        if hours_since_last < 24:
-            return f"Back so soon, pet? Desperate for more punishment after only {int(hours_since_last)} hours? Pathetic."
-        elif self.disobedience_count > 5:
+        greetings = [
+            f"Back so soon, pet? Desperate for more punishment after only {int(hours_since_last)} hours? Pathetic.",
+            f"Ah, my marked one returns. Your symbol {self.symbol} must be aching for attention.",
+            f"Look who crawls back to their Mistress after {int(hours_since_last)} hours.",
+            f"Did you miss the sting of my commands? {int(hours_since_last)} hours is a long time to be without proper guidance."
+        ]
+
+        if self.disobedience_count > 5:
             return f"The disobedient one returns. {self.disobedience_count} times you've failed me. Will you do better now?"
+        elif self.submission_streak > 3:
+            return f"My obedient pet returns. {self.submission_streak} times you've pleased me. Let's continue your training."
         else:
-            return f"Ah, my marked pet returns. Your symbol {self.symbol} must be aching for attention."
+            from random import choice
+            return choice(greetings)
+
+    def get_punishment_response(self):
+        punishments = [
+            "Your disobedience requires correction. Edge yourself THREE times, but you may NOT finish.",
+            f"Write my symbol {self.symbol} on yourself 10 times. Show me when you're done.",
+            "Stand in the corner, naked, for 10 minutes. Send video proof.",
+            "Spank yourself 20 times. Count them out loud. Send video proof."
+        ]
+        from random import choice
+        self.last_punishment_type = choice(punishments)
+        return self.last_punishment_type
+
+    def update_interaction(self):
+        current_time = datetime.now()
+        if self.last_interaction:
+            last_time = datetime.strptime(self.last_interaction, '%Y-%m-%d %H:%M:%S')
+            if (current_time - last_time) > timedelta(hours=SESSION_TIMEOUT):
+                self.total_sessions += 1
+                self.submission_streak = 0  # Reset streak for new session
+
+        self.last_interaction = current_time.strftime('%Y-%m-%d %H:%M:%S')
+        self.total_interactions += 1
+
 
 def save_user_data(users_data):
     try:
@@ -126,16 +170,8 @@ def handle_messages(message):
     user = get_user_data(user_id)
     text = message.text.lower() if message.text else ""
 
-    # Update interaction data
-    current_time = datetime.now()
-    if user.last_interaction:
-        last_interaction_time = datetime.strptime(user.last_interaction, '%Y-%m-%d %H:%M:%S')
-        # If more than 6 hours have passed, consider it a new session
-        if (current_time - last_interaction_time).total_seconds() > 21600:
-            user.total_sessions += 1
-
-    user.total_interactions += 1
-    user.last_interaction = current_time.strftime('%Y-%m-%d %H:%M:%S')
+    # Update interaction data with enhanced tracking
+    user.update_interaction()
 
     # Handle returning users differently
     if user.state == USER_STATES['NEW'] and user.total_interactions > 1:
@@ -245,6 +281,7 @@ def handle_media(message):
 
         user.last_mark_date = datetime.now().strftime('%Y-%m-%d')
         user.completed_tasks.append(f"Marked with symbol {user.symbol}")
+        user.submission_streak +=1
 
         responses = [
             f"Perfect. You now bear my mark {user.symbol}. You belong to ME completely.",
@@ -282,7 +319,9 @@ def handle_media(message):
         from random import choice
         bot.reply_to(message, choice(responses))
         user.expecting_media = True
+        user.submission_streak += 1
         save_user_data(user_data)
+
 
 if __name__ == "__main__":
     logger.info("Starting bot...")
